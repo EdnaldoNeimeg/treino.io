@@ -8,6 +8,22 @@
                 <div class="flex items-center justify-center gap-2">
                     <div class="flex items-center gap-3 p-1.5 rounded-md shadow-xl bg-white">
                         <div class="flex items-center justify-center gap-2">
+                            <input
+                                type="text"
+                                v-model="drawingAreaWidth"
+                                placeholder="Largura"
+                                class="w-14 h-8 text-sm text-center border border-slate-200 rounded p-1 bg-slate-100"
+                            >
+                            <span>X</span>
+                            <input
+                                type="text"
+                                v-model="drawingAreaHeight"
+                                placeholder="Altura"
+                                class="w-14 h-8 text-sm text-center border border-slate-200 rounded p-1 bg-slate-100"
+                            >
+                        </div>
+                        <div class="h-6 border-r border-slate-300"></div>
+                        <div class="flex items-center justify-center gap-2">
                             <div class="flex items-center overflow-hidden">
                                 <button
                                     @click="zoomOut()"
@@ -128,17 +144,8 @@
 
         <div class="grow flex items-center justify-center w-full bg-[url(@/assets/image.png)] bg-size-[800px]">
             <div ref="canvasContainer" class="max-h-full overflow-auto w-full h-full flex items-center justify-center">
-                <div ref="canvasWrapper" class="relative">
+                <div ref="canvasWrapper" class="relative w-full h-full bg-red-500">
                     <canvas ref="canvasEl"></canvas>
-                    <!-- Resize handles -->
-                    <div class="resize-handle resize-handle-n" @mousedown="startResize($event, 'n')"></div>
-                    <div class="resize-handle resize-handle-s" @mousedown="startResize($event, 's')"></div>
-                    <div class="resize-handle resize-handle-e" @mousedown="startResize($event, 'e')"></div>
-                    <div class="resize-handle resize-handle-w" @mousedown="startResize($event, 'w')"></div>
-                    <div class="resize-handle resize-handle-ne" @mousedown="startResize($event, 'ne')"></div>
-                    <div class="resize-handle resize-handle-nw" @mousedown="startResize($event, 'nw')"></div>
-                    <div class="resize-handle resize-handle-se" @mousedown="startResize($event, 'se')"></div>
-                    <div class="resize-handle resize-handle-sw" @mousedown="startResize($event, 'sw')"></div>
                 </div>
                 <div class="absolute flex items-center justify-between bottom-2 left-1/2 transform -translate-x-1/2">
                     <div class="flex items-center rounded shadow-xl bg-white">
@@ -162,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { Canvas, FabricImage, Rect, PencilBrush, classRegistry } from 'fabric'
 
 import Arrow from '@/fabricClasses/Arrow.js';
@@ -187,7 +194,6 @@ const props = defineProps({
 
 // Variáveis para zoom suave com mouse wheel
 let wheelZoomTimeout = null;
-let lastWheelZoom = null;
 
 // 2. VARIÁVEIS DE REFERÊNCIA
 
@@ -202,22 +208,20 @@ const fabricCanvas = ref(null);
 
 const showWatermark = ref(true);
 let watermarkImage = 'public/logo-comprido-escuro.png';
+const watermark = ref(null);
+const baseScale = 0.2; // Escala base da marca d'água
 
 const firstImage = ref(null);
 const firstClipPath = ref(null);
 const secondImage = ref(null);
 const secondClipPath = ref(null);
+const drawingArea = ref(null); // Área de desenho (retângulo transparente)
 const zoomLevel = ref(1);
-const maxZoom = ref(3);
+const maxZoom = ref(4.5);
 const minZoom = ref(0.5);
 
-// Variáveis para controle de redimensionamento
-const isResizing = ref(false);
-const resizeDirection = ref('');
-const startX = ref(0);
-const startY = ref(0);
-const startWidth = ref(0);
-const startHeight = ref(0);
+const drawingAreaWidth = ref(0);
+const drawingAreaHeight = ref(0);
 
 // Variáveis para o histórico de ações (Undo/Redo)
 const undoStack = ref([]);
@@ -228,6 +232,9 @@ let isRestoring = false; // Flag para evitar que o estado seja salvo durante uma
 const displayMode = ref('ltr'); // 'ltr' (left-to-right) ou 'ttb' (top-to-bottom)
 const activeTool = ref(null); // Ferramenta ativa (ex: 'draw', 'select', etc.)
 
+// Variáveis para o pincel de desenho livre
+const baseBrushWidth = 2.5; // Largura base do pincel
+
 // 3. CICLO DE VIDA 'onMounted'
 // O código dentro do 'onMounted' só executa *depois* que o componente foi montado na página.
 // Isso é crucial, pois garante que o elemento <canvas> já existe no DOM para que o
@@ -235,7 +242,7 @@ const activeTool = ref(null); // Ferramenta ativa (ex: 'draw', 'select', etc.)
 onMounted(async () => {
     // Inicializa o Fabric.js, associando-o ao nosso elemento canvas.
     fabricCanvas.value = new Canvas(canvasEl.value, {
-        // preserveObjectStacking: true, // Permite que objetos fiquem acima de outros
+        preserveObjectStacking: true, // Permite que objetos fiquem acima de outros
     });
 
     window.fabricCanvas = fabricCanvas.value;
@@ -243,12 +250,10 @@ onMounted(async () => {
     // Configurar zoom com mouse wheel
     setupZoom();
 
-    // Configurar redimensionamento
-    setupResize();
-
     // Chama a função para carregar as imagens.
     setTimeout(async () => {
         await loadImages();
+        await addDrawingArea();
         await adjustCanvasSize();
         await addClipPaths();
         saveCanvasState(); // Salva o estado inicial
@@ -265,6 +270,8 @@ onMounted(async () => {
 
     setTimeout(() => {
         addWatermark();
+        // Ativa a ferramenta de seleção por padrão
+        activateSelectionMode();
     }, 300);
 
     // const arrow = new Arrow({
@@ -281,12 +288,97 @@ onMounted(async () => {
 // Limpa o listener quando o componente for desmontado
 onUnmounted(() => {
     window.removeEventListener('resize', adjustCanvasSize);
-    document.removeEventListener('mousemove', handleResize);
-    document.removeEventListener('mouseup', stopResize);
     document.removeEventListener('keydown', handleKeyDown);
 });
 
+// Watchers para atualizar a área de desenho quando as dimensões mudarem
+watch([drawingAreaWidth, drawingAreaHeight], ( 
+    newValues,
+    oldValues
+) => {
+    updateDrawingAreaDimensions(oldValues, newValues);
+}, { deep: true });
+
 // 4. FUNÇÕES PRINCIPAIS
+
+async function addDrawingArea() {
+    if (!firstClipPath.value || !secondClipPath.value) return;
+
+    // Remove área de desenho existente, se houver
+    if (drawingArea.value) {
+        fabricCanvas.value.remove(drawingArea.value);
+        drawingArea.value = null;
+    }
+
+    // Calcula dimensões baseadas nos clipPaths
+    const totalWidth = firstClipPath.value.width + secondClipPath.value.width;
+    const maxHeight = Math.max(firstClipPath.value.height, secondClipPath.value.height);
+    
+    // Posição inicial no ponto (0,0) do primeiro clipPath
+    const startX = firstClipPath.value.left;
+    const startY = firstClipPath.value.top;
+
+    // Cria o retângulo da área de desenho
+    const drawingAreaRect = new Rect({
+        left: startX,
+        top: startY,
+        width: totalWidth,
+        height: maxHeight,
+        fill: 'transparent',
+        stroke: '#007ACC', // Cor da borda azul
+        strokeWidth: 2,
+        strokeDashArray: [5, 5], // Borda tracejada
+        selectable: false,
+        evented: false,
+        id: 'drawingArea',
+        absolutePositioned: true,
+    });
+
+    drawingArea.value = drawingAreaRect;
+    drawingAreaWidth.value = totalWidth;
+    drawingAreaHeight.value = maxHeight;
+
+    // Adiciona ao canvas
+    fabricCanvas.value.add(drawingAreaRect);
+    fabricCanvas.value.bringToFront(drawingAreaRect);
+    
+    // Armazena a referência
+    drawingArea.value = drawingAreaRect;
+    
+    fabricCanvas.value.requestRenderAll();
+}
+
+/**
+ * Atualiza as dimensões da área de desenho baseado nos inputs do usuário
+ */
+function updateDrawingAreaDimensions(oldValues, newValues) {
+    
+    if (!drawingArea.value || !fabricCanvas.value) return;
+
+    const oldWidth = parseInt(oldValues[0]) || 0;
+    const oldHeight = parseInt(oldValues[1]) || 0;
+
+    const newWidth = parseInt(newValues[0]) || 0;
+    const newHeight = parseInt(newValues[1]) || 0;
+
+    const differenceWidth = oldWidth > 0 ? newWidth - oldWidth : 0;
+    const differenceHeight = oldHeight > 0 ? newHeight - oldHeight : 0;
+
+    if (newWidth <= 0 || newHeight <= 0) return;
+
+    // Atualiza as dimensões da área de desenho
+    drawingArea.value.set({
+        width: newWidth,
+        height: newHeight,
+        top: drawingArea.value.top - differenceHeight / 2,
+        left: drawingArea.value.left - differenceWidth / 2,
+    });
+
+    fabricCanvas.value.requestRenderAll();
+    
+    // Salva o estado após a modificação
+    saveCanvasState();
+}
 
 /**
  * Salva o estado atual do canvas no histórico (undo stack).
@@ -414,145 +506,6 @@ function handleKeyDown(e) {
     }
 }
 
-
-/**
- * Configura o sistema de redimensionamento do canvas
- */
-function setupResize() {
-    // Listeners globais para mouse move e mouse up
-    document.addEventListener('mousemove', handleResize);
-    document.addEventListener('mouseup', stopResize);
-}
-
-/**
- * Inicia o redimensionamento do canvas
- */
-function startResize(event, direction) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    isResizing.value = true;
-    resizeDirection.value = direction;
-    startX.value = event.clientX;
-    startY.value = event.clientY;
-    startWidth.value = fabricCanvas.value.width;
-    startHeight.value = fabricCanvas.value.height;
-
-    document.body.style.userSelect = 'none';
-    document.body.style.cursor = getCursorForDirection(direction);
-}
-
-/**
- * Manipula o redimensionamento durante o movimento do mouse
- */
-function handleResize(event) {
-    if (!isResizing.value) return;
-
-    const deltaX = event.clientX - startX.value;
-    const deltaY = event.clientY - startY.value;
-    const container = canvasContainer.value;
-    const maxWidth = container.clientWidth - 40;
-    const maxHeight = container.clientHeight - 40;
-
-    let newWidth = startWidth.value;
-    let newHeight = startHeight.value;
-
-    // Calcula as novas dimensões baseadas na direção
-    switch (resizeDirection.value) {
-        case 'e':
-            newWidth = Math.min(startWidth.value + deltaX, maxWidth);
-            break;
-        case 'w':
-            newWidth = Math.min(startWidth.value - deltaX, maxWidth);
-            break;
-        case 's':
-            newHeight = Math.min(startHeight.value + deltaY, maxHeight);
-            break;
-        case 'n':
-            newHeight = Math.min(startHeight.value - deltaY, maxHeight);
-            break;
-        case 'se':
-            newWidth = Math.min(startWidth.value + deltaX, maxWidth);
-            newHeight = Math.min(startHeight.value + deltaY, maxHeight);
-            break;
-        case 'sw':
-            newWidth = Math.min(startWidth.value - deltaX, maxWidth);
-            newHeight = Math.min(startHeight.value + deltaY, maxHeight);
-            break;
-        case 'ne':
-            newWidth = Math.min(startWidth.value + deltaX, maxWidth);
-            newHeight = Math.min(startHeight.value - deltaY, maxHeight);
-            break;
-        case 'nw':
-            newWidth = Math.min(startWidth.value - deltaX, maxWidth);
-            newHeight = Math.min(startHeight.value - deltaY, maxHeight);
-            break;
-    }
-
-    // Aplica tamanho mínimo
-    newWidth = Math.max(newWidth, 100);
-    newHeight = Math.max(newHeight, 100);
-
-    // Redimensiona o canvas
-    fabricCanvas.value.setDimensions({
-        width: newWidth,
-        height: newHeight
-    });
-
-    // Atualiza os clip paths para as imagens
-    if (firstClipPath.value && secondClipPath.value) {
-        // Primeiro clipPath sempre ocupa a metade esquerda
-        firstClipPath.value.set({
-            left: 0,
-            top: 0,
-            width: newWidth / 2,
-            height: newHeight,
-        });
-        
-        // Segundo clipPath sempre ocupa a metade direita
-        secondClipPath.value.set({
-            left: newWidth / 2,
-            top: 0,
-            width: newWidth / 2,
-            height: newHeight,
-        });
-    }
-
-    fabricCanvas.value.renderAll();
-    
-    // SEMPRE centraliza as imagens após redimensionar
-    centerImagesInClipPaths();
-}
-
-/**
- * Para o redimensionamento
- */
-function stopResize() {
-    if (!isResizing.value) return;
-
-    isResizing.value = false;
-    resizeDirection.value = '';
-    document.body.style.userSelect = '';
-    document.body.style.cursor = '';
-}
-
-/**
- * Retorna o cursor apropriado para cada direção de redimensionamento
- */
-function getCursorForDirection(direction) {
-    const cursors = {
-        'n': 'ns-resize',
-        's': 'ns-resize',
-        'e': 'ew-resize',
-        'w': 'ew-resize',
-        'ne': 'nesw-resize',
-        'sw': 'nesw-resize',
-        'nw': 'nwse-resize',
-        'se': 'nwse-resize'
-    };
-    return cursors[direction] || 'default';
-}
-
 /**
  * Anima o zoom suavemente de um valor para outro
  */
@@ -576,6 +529,10 @@ function animateZoom(startZoom, endZoom, duration = 300, centerPoint = null) {
       }
       
       zoomLevel.value = currentZoom;
+      
+      // Atualiza a largura do pincel durante a animação de zoom
+      updateBrushWidth();
+      
       fabricCanvas.value.requestRenderAll();
 
       if (progress < 1) {
@@ -636,6 +593,7 @@ function setZoomLimits(min, max) {
       const newZoom = Math.min(Math.max(currentZoom, min), max);
       fabricCanvas.value.setZoom(newZoom);
       zoomLevel.value = newZoom;
+      updateBrushWidth();
       fabricCanvas.value.requestRenderAll();
     }
   }
@@ -653,6 +611,7 @@ async function setZoom(level, animate = true) {
   } else {
     fabricCanvas.value.setZoom(targetZoom);
     zoomLevel.value = targetZoom;
+    updateBrushWidth();
     fabricCanvas.value.requestRenderAll();
   }
 }
@@ -732,6 +691,9 @@ console.log('fitToCanvas');
   
   // Centraliza as imagens após a animação
   centerImagesInClipPaths();
+  
+  // Atualiza a área de desenho após ajustar o zoom
+  addDrawingArea();
 }
 
 function setupZoom() {
@@ -756,8 +718,8 @@ function setupZoom() {
         fabricCanvas.value.zoomToPoint({ x: pointer.x, y: pointer.y }, zoom);
         zoomLevel.value = zoom;
         
-        // Armazena o último zoom para possível suavização futura
-        lastWheelZoom = zoom;
+        // Atualiza a largura do pincel baseada no novo zoom
+        updateBrushWidth();
 
         opt.e.preventDefault();
         opt.e.stopPropagation();
@@ -913,8 +875,8 @@ function addClipPaths() {
         firstImage.value.clipPath = clipPath1;
         secondImage.value.clipPath = clipPath2;
 
-        fabricCanvas.value.add(clipPath1);
-        fabricCanvas.value.add(clipPath2);
+        // fabricCanvas.value.add(clipPath1);
+        // fabricCanvas.value.add(clipPath2);
 
         fabricCanvas.value.requestRenderAll();
 
@@ -923,6 +885,9 @@ function addClipPaths() {
         
         // Centraliza as imagens dentro de seus clipPaths
         centerImagesInClipPaths();
+        
+        // Adiciona a área de desenho após criar os clipPaths
+        addDrawingArea();
     }
 }
 
@@ -979,8 +944,28 @@ async function loadImages() {
 
         // Adiciona as imagens ao canvas.
         // O Fabric trata cada item como um objeto que pode ser movido, rotacionado, etc.
-        fabricCanvas.value.add(imgLeft.set({ left: 0, top: 0, evented: true, selectable: true }));
-        fabricCanvas.value.add(imgRight.set({ left: imgLeft.width * scale, top: 0, evented: true, selectable: true }));
+        fabricCanvas.value.add(imgLeft.set({ 
+            left: 0, 
+            top: 0, 
+            evented: true, 
+            selectable: true, 
+            centeredScaling: true,
+            hasControls: true,
+            hasBorders: true,
+            cornerSize: 10,
+            transparentCorners: true
+        }));
+        fabricCanvas.value.add(imgRight.set({ 
+            left: imgLeft.width * scale, 
+            top: 0, 
+            evented: true, 
+            selectable: true, 
+            centeredScaling: true,
+            hasControls: true,
+            hasBorders: true,
+            cornerSize: 10,
+            transparentCorners: true
+        }));
 
         // set images
         firstImage.value = imgLeft;
@@ -990,22 +975,44 @@ async function loadImages() {
 
 function adjustCanvasSize() {
     if (fabricCanvas.value) {
-        const container = document.getElementById('canvas-container');
+        const container = canvasWrapper.value;
+        console.log({
+            containerWidth: container ? container.clientWidth : 'N/A',
+            containerHeight: container ? container.clientHeight : 'N/A',
+            canvasWidth: fabricCanvas.value.width,
+            canvasHeight: fabricCanvas.value.height,
+        });
+        
         if (container) {
             const containerWidth = container.clientWidth;
             const containerHeight = container.clientHeight;
 
             // Define o tamanho do canvas para não ultrapassar o container
             fabricCanvas.value.setDimensions({
-                width: Math.min(containerWidth, fabricCanvas.value.width || containerWidth),
-                height: Math.min(containerHeight, fabricCanvas.value.height || containerHeight)
+                width: containerWidth,
+                height: containerHeight
             });
 
             fabricCanvas.value.renderAll();
             
             // SEMPRE centraliza as imagens após ajustar o tamanho do canvas
             centerImagesInClipPaths();
+            
+            // Atualiza a área de desenho após redimensionar
+            addDrawingArea();
         }
+    }
+}
+
+/**
+ * Atualiza a largura do pincel baseada no nível de zoom
+ */
+function updateBrushWidth() {
+    if (fabricCanvas.value && fabricCanvas.value.freeDrawingBrush) {
+        const zoom = fabricCanvas.value.getZoom();
+        // A largura do pincel diminui conforme o zoom aumenta
+        const adjustedWidth = baseBrushWidth / zoom;
+        fabricCanvas.value.freeDrawingBrush.width = adjustedWidth;
     }
 }
 
@@ -1015,9 +1022,10 @@ function adjustCanvasSize() {
 function activateDrawingMode() {
     if (fabricCanvas.value) {
         fabricCanvas.value.isDrawingMode = true;
+        fabricCanvas.value.selection = false; // Desabilita seleção no modo de desenho
         fabricCanvas.value.freeDrawingBrush = new PencilBrush(fabricCanvas.value);
 
-        fabricCanvas.value.freeDrawingBrush.width = 5;       // Espessura do pincel
+        updateBrushWidth(); // Usa a função para definir a largura ajustada ao zoom
         fabricCanvas.value.freeDrawingBrush.color = '#ef4444'; // Cor do pincel
     }
 }
@@ -1029,6 +1037,7 @@ function activateSelectionMode() {
     activeTool.value = 'select';
     if (fabricCanvas.value) {
         fabricCanvas.value.isDrawingMode = false;
+        fabricCanvas.value.selection = true; // Habilita seleção quando ferramenta de seleção está ativa
     }
 }
 
@@ -1047,35 +1056,37 @@ async function addWatermark() {
     // find if watermark already exists
     const existingWatermark = fabricCanvas.value.getObjects().find(obj => obj.id === 'watermark');
     if (existingWatermark) {
+        watermark.value = existingWatermark;
         existingWatermark.set({
             opacity: 0.6,
         });
         fabricCanvas.value.bringObjectToFront(existingWatermark);
+        updateWatermarkPosition();
         fabricCanvas.value.requestRenderAll();
         return;
     }
 
     await Promise.all([
         FabricImage.fromURL(watermarkImage, { crossOrigin: 'anonymous' })
-    ]).then(([watermark]) => {
-        const scaleFactor = 0.2; // Escala da marca d'água
-        watermark.set({
+    ]).then(([watermarkObj]) => {
+        watermarkObj.set({
             opacity: 0.6,
             selectable: false,
             evented: false,
             hoverCursor: 'default',
             id: 'watermark',
-        });
-        watermark.scale(scaleFactor);
-
-        // Posiciona no canto inferior direito com uma margem
-        const margin = 10;
-        watermark.set({
-            left: fabricCanvas.value.getWidth() - watermark.getScaledWidth() - margin,
-            top: fabricCanvas.value.getHeight() - watermark.getScaledHeight() - margin,
+            scaleX: baseScale,
+            scaleY: baseScale,
         });
 
-        fabricCanvas.value.overlayImage = watermark;
+        // Armazena a referência da marca d'água
+        watermark.value = watermarkObj;
+
+        // Posiciona usando a função de viewport
+        updateWatermarkPosition();
+
+        fabricCanvas.value.add(watermarkObj);
+        fabricCanvas.value.bringObjectToFront(watermarkObj);
         fabricCanvas.value.requestRenderAll();
     });
 }
@@ -1089,6 +1100,39 @@ async function toggleWatermark() {
         fabricCanvas.value.overlayImage = null;
         fabricCanvas.value.requestRenderAll();
     }
+}
+
+/**
+ * Atualiza a posição da marca d'água para sempre ficar no canto inferior direito do viewport
+ */
+function updateWatermarkPosition() {
+    if (!fabricCanvas.value || !watermark.value) return;
+    
+    const zoom = fabricCanvas.value.getZoom();
+    const canvasWidth = fabricCanvas.value.getWidth();
+    const canvasHeight = fabricCanvas.value.getHeight();
+    
+    // Posição desejada no viewport (canto inferior direito com margem)
+    const margin = 20;
+    // const viewportX = canvasWidth - (watermark.value.getScaledWidth() * (baseScale / zoom)) - margin;
+    // const viewportY = canvasHeight - (watermark.value.getScaledHeight() * (baseScale / zoom)) - margin;
+    
+    // // Converte coordenadas do viewport para coordenadas do canvas
+    // const canvasX = (viewportX - vpt[4]) / zoom;
+    // const canvasY = (viewportY - vpt[5]) / zoom;
+
+    const viewportX = canvasWidth - (watermark.value.width * baseScale) - margin;
+    const viewportY = canvasHeight - (watermark.value.height * baseScale) - margin
+    
+    // Atualiza posição e escala da marca d'água
+    watermark.value.set({
+        left: viewportX,
+        top: viewportY,
+        scaleX: baseScale / zoom, // Compensa o zoom
+        scaleY: baseScale / zoom  // Compensa o zoom
+    });
+    
+    fabricCanvas.value.renderAll();
 }
 
 
@@ -1127,75 +1171,10 @@ defineExpose({
    fique encapsulado e não vaze para o resto da página. */
 @import "@/assets/main.css";
 
-/* Estilos para os handles de redimensionamento */
-.resize-handle {
-    @apply absolute bg-primary-500 border border-primary-600 rounded opacity-80 transition-opacity;
-}
 
-.resize-handle:hover {
-    @apply opacity-100 bg-primary-600;
-}
-
-/* Handles nas bordas */
-.resize-handle-n,
-.resize-handle-s {
-    @apply w-5 h-2 left-1/2 transform -translate-x-1/2;
-    cursor: ns-resize;
-}
-
-.resize-handle-e,
-.resize-handle-w {
-    @apply w-2 h-5 top-1/2 transform -translate-y-1/2;
-    cursor: ew-resize;
-}
-
-.resize-handle-n {
-    top: -3px;
-}
-
-.resize-handle-s {
-    bottom: -3px;
-}
-
-.resize-handle-e {
-    right: -3px;
-}
-
-.resize-handle-w {
-    left: -3px;
-}
-
-/* Handles nos cantos */
-.resize-handle-ne,
-.resize-handle-nw,
-.resize-handle-se,
-.resize-handle-sw {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-}
-
-.resize-handle-ne {
-    top: -4px;
-    right: -4px;
-    cursor: nesw-resize;
-}
-
-.resize-handle-nw {
-    top: -4px;
-    left: -4px;
-    cursor: nwse-resize;
-}
-
-.resize-handle-se {
-    bottom: -4px;
-    right: -4px;
-    cursor: nwse-resize;
-}
-
-.resize-handle-sw {
-    bottom: -4px;
-    left: -4px;
-    cursor: nesw-resize;
-}
+/* .canvas-container {
+    width: 100% !important;
+    height: 100% !important;
+    position: relative;
+} */
 </style>

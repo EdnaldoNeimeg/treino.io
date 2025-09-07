@@ -204,7 +204,7 @@ const canvasWrapper = ref(null);
 // O Vue irá conectar esta variável ao elemento que tem ref="canvasEl".
 const canvasEl = ref(null);
 // 'fabricCanvas' guardará a instância do Fabric.js para podermos manipular o canvas.
-const fabricCanvas = ref(null);
+let fabricCanvas = null
 
 const showWatermark = ref(true);
 let watermarkImage = 'public/logo-comprido-escuro.png';
@@ -228,6 +228,7 @@ const undoStack = ref([]);
 const redoStack = ref([]);
 const maxHistorySize = 50; // Limite de ações no histórico
 let isRestoring = false; // Flag para evitar que o estado seja salvo durante uma restauração
+let isDrawingAreaUpdating = false; // Flag para evitar loops entre input e redimensionamento manual
 
 const displayMode = ref('ltr'); // 'ltr' (left-to-right) ou 'ttb' (top-to-bottom)
 const activeTool = ref(null); // Ferramenta ativa (ex: 'draw', 'select', etc.)
@@ -241,11 +242,11 @@ const baseBrushWidth = 2.5; // Largura base do pincel
 // Fabric.js possa controlá-lo.
 onMounted(async () => {
     // Inicializa o Fabric.js, associando-o ao nosso elemento canvas.
-    fabricCanvas.value = new Canvas(canvasEl.value, {
+    fabricCanvas = new Canvas(canvasEl.value, {
         preserveObjectStacking: true, // Permite que objetos fiquem acima de outros
     });
 
-    window.fabricCanvas = fabricCanvas.value;
+    window.fabricCanvas = fabricCanvas;
 
     // Configurar zoom com mouse wheel
     setupZoom();
@@ -282,7 +283,7 @@ onMounted(async () => {
     //     stroke: 'blue',
     //     strokeWidth: 3,
     // });
-    // fabricCanvas.value.add(arrow);
+    // fabricCanvas.add(arrow);
 });
 
 // Limpa o listener quando o componente for desmontado
@@ -306,7 +307,7 @@ async function addDrawingArea() {
 
     // Remove área de desenho existente, se houver
     if (drawingArea.value) {
-        fabricCanvas.value.remove(drawingArea.value);
+        fabricCanvas.remove(drawingArea.value);
         drawingArea.value = null;
     }
 
@@ -314,24 +315,43 @@ async function addDrawingArea() {
     const totalWidth = firstClipPath.value.width + secondClipPath.value.width;
     const maxHeight = Math.max(firstClipPath.value.height, secondClipPath.value.height);
     
-    // Posição inicial no ponto (0,0) do primeiro clipPath
-    const startX = firstClipPath.value.left;
-    const startY = firstClipPath.value.top;
+    // Posição inicial no centro da área dos clipPaths (já que usamos originX/Y center)
+    const centerX = firstClipPath.value.left + totalWidth / 2;
+    const centerY = firstClipPath.value.top + maxHeight / 2;
 
     // Cria o retângulo da área de desenho
     const drawingAreaRect = new Rect({
-        left: startX,
-        top: startY,
+        left: centerX,
+        top: centerY,
         width: totalWidth,
         height: maxHeight,
         fill: 'transparent',
-        stroke: '#007ACC', // Cor da borda azul
+        stroke: 'oklch(67.72% 0.103 40.38)', // Cor da borda azul
+        borderColor: 'oklch(67.72% 0.103 40.38)',
+        cornerColor: 'orange',
         strokeWidth: 2,
-        strokeDashArray: [5, 5], // Borda tracejada
-        selectable: false,
-        evented: false,
+        strokeUniform: true,
+        selectable: true,
+        evented: true,
         id: 'drawingArea',
         absolutePositioned: true,
+        resizeByCorners: true,
+        lockUniScaling: false,
+        hasControls: true,
+        hasBorders: true,
+        cornerSize: 8,
+        transparentCorners: false,
+        borderColor: '#007ACC',
+        cornerColor: '#007ACC',
+        cornerStrokeColor: '#ffffff',
+        lockRotation: true, // Impede rotação, apenas redimensionamento
+        lockMovementX: true, // Impede movimento horizontal
+        lockMovementY: true, // Impede movimento vertical
+        centeredScaling: true, // Redimensionamento centralizado
+        originX: 'center', // Origem X no centro
+        originY: 'center', // Origem Y no centro
+        perPixelTargetFind: true, // Seleção precisa por pixel
+        
     });
 
     drawingArea.value = drawingAreaRect;
@@ -339,45 +359,77 @@ async function addDrawingArea() {
     drawingAreaHeight.value = maxHeight;
 
     // Adiciona ao canvas
-    fabricCanvas.value.add(drawingAreaRect);
-    fabricCanvas.value.bringToFront(drawingAreaRect);
+    fabricCanvas.add(drawingAreaRect);
+    fabricCanvas.bringObjectToFront(drawingAreaRect);
     
     // Armazena a referência
     drawingArea.value = drawingAreaRect;
     
-    fabricCanvas.value.requestRenderAll();
+    // Adiciona listener para atualizar os inputs quando redimensionado
+    drawingAreaRect.on('scaling', () => {
+        if (!isDrawingAreaUpdating) {
+            isDrawingAreaUpdating = true;
+            const newWidth = Math.round(drawingAreaRect.width * drawingAreaRect.scaleX);
+            const newHeight = Math.round(drawingAreaRect.height * drawingAreaRect.scaleY);
+            drawingAreaWidth.value = newWidth;
+            drawingAreaHeight.value = newHeight;
+            isDrawingAreaUpdating = false;
+        }
+    });
+
+    drawingAreaRect.on('modified', () => {
+        if (!isDrawingAreaUpdating) {
+            isDrawingAreaUpdating = true;
+            const newWidth = Math.round(drawingAreaRect.width * drawingAreaRect.scaleX);
+            const newHeight = Math.round(drawingAreaRect.height * drawingAreaRect.scaleY);
+            drawingAreaWidth.value = newWidth;
+            drawingAreaHeight.value = newHeight;
+            
+            // Normaliza o objeto para manter apenas width/height sem escala
+            drawingAreaRect.set({
+                width: newWidth,
+                height: newHeight,
+                scaleX: 1,
+                scaleY: 1
+            });
+            fabricCanvas.requestRenderAll();
+            isDrawingAreaUpdating = false;
+        }
+    });
+    
+    fabricCanvas.requestRenderAll();
 }
 
 /**
  * Atualiza as dimensões da área de desenho baseado nos inputs do usuário
  */
 function updateDrawingAreaDimensions(oldValues, newValues) {
-    
-    if (!drawingArea.value || !fabricCanvas.value) return;
+    if (!drawingArea.value || !fabricCanvas || isDrawingAreaUpdating) return;
 
-    const oldWidth = parseInt(oldValues[0]) || 0;
-    const oldHeight = parseInt(oldValues[1]) || 0;
+    isDrawingAreaUpdating = true;
 
     const newWidth = parseInt(newValues[0]) || 0;
     const newHeight = parseInt(newValues[1]) || 0;
 
-    const differenceWidth = oldWidth > 0 ? newWidth - oldWidth : 0;
-    const differenceHeight = oldHeight > 0 ? newHeight - oldHeight : 0;
-
-    if (newWidth <= 0 || newHeight <= 0) return;
+    if (newWidth <= 0 || newHeight <= 0) {
+        isDrawingAreaUpdating = false;
+        return;
+    }
 
     // Atualiza as dimensões da área de desenho
     drawingArea.value.set({
         width: newWidth,
         height: newHeight,
-        top: drawingArea.value.top - differenceHeight / 2,
-        left: drawingArea.value.left - differenceWidth / 2,
+        scaleX: 1,
+        scaleY: 1
     });
 
-    fabricCanvas.value.requestRenderAll();
+    fabricCanvas.requestRenderAll();
     
     // Salva o estado após a modificação
     saveCanvasState();
+    
+    isDrawingAreaUpdating = false;
 }
 
 /**
@@ -390,7 +442,7 @@ function saveCanvasState() {
     redoStack.value = [];
 
     // Serializa o canvas para JSON, incluindo propriedades personalizadas
-    const state = fabricCanvas.value.toJSON(['id', 'clipPath', 'selectable', 'evented', 'absolutePositioned']);
+    const state = fabricCanvas.toJSON(['id', 'clipPath', 'selectable', 'evented', 'absolutePositioned']);
 
     // Adiciona o estado à pilha de desfazer
     undoStack.value.push(state);
@@ -438,25 +490,25 @@ function redo() {
 function restoreCanvasState(state) {
     isRestoring = true; // Ativa a flag para não salvar este estado novamente
 
-    fabricCanvas.value.loadFromJSON(state, () => {
+    fabricCanvas.loadFromJSON(state, () => {
         // Após carregar, reatribui as referências dos clipPaths e imagens
-        fabricCanvas.value.getObjects().forEach(obj => {
+        fabricCanvas.getObjects().forEach(obj => {
             if (obj.clipPath) {
                 // A referência do clipPath precisa ser re-associada
-                const clipPathId = fabricCanvas.value.getObjects().indexOf(obj.clipPath);
+                const clipPathId = fabricCanvas.getObjects().indexOf(obj.clipPath);
                 if (clipPathId > -1) {
-                    obj.clipPath = fabricCanvas.value.getObjects()[clipPathId];
+                    obj.clipPath = fabricCanvas.getObjects()[clipPathId];
                 }
             }
         });
 
         // Reatribui as referências principais
-        firstImage.value = fabricCanvas.value.getObjects().find(o => o.src === props.imgLeftSrc);
-        secondImage.value = fabricCanvas.value.getObjects().find(o => o.src === props.imgRightSrc);
+        firstImage.value = fabricCanvas.getObjects().find(o => o.src === props.imgLeftSrc);
+        secondImage.value = fabricCanvas.getObjects().find(o => o.src === props.imgRightSrc);
         firstClipPath.value = firstImage.value?.clipPath;
         secondClipPath.value = secondImage.value?.clipPath;
 
-        fabricCanvas.value.requestRenderAll();
+        fabricCanvas.requestRenderAll();
         isRestoring = false; // Desativa a flag
     });
 }
@@ -465,7 +517,7 @@ function restoreCanvasState(state) {
  * Configura os listeners de eventos do canvas para salvar o estado automaticamente.
  */
 function setupCanvasStateListeners() {
-    fabricCanvas.value.on({
+    fabricCanvas.on({
         'object:modified': saveCanvasState,
         'path:created': (e) => {
             const path = e?.path;
@@ -523,9 +575,9 @@ function animateZoom(startZoom, endZoom, duration = 300, centerPoint = null) {
       const currentZoom = startZoom + (endZoom - startZoom) * easeProgress;
       
       if (centerPoint) {
-        fabricCanvas.value.zoomToPoint(centerPoint, currentZoom);
+        fabricCanvas.zoomToPoint(centerPoint, currentZoom);
       } else {
-        fabricCanvas.value.setZoom(currentZoom);
+        fabricCanvas.setZoom(currentZoom);
       }
       
       zoomLevel.value = currentZoom;
@@ -533,7 +585,7 @@ function animateZoom(startZoom, endZoom, duration = 300, centerPoint = null) {
       // Atualiza a largura do pincel durante a animação de zoom
       updateBrushWidth();
       
-      fabricCanvas.value.requestRenderAll();
+      fabricCanvas.requestRenderAll();
 
       if (progress < 1) {
         requestAnimationFrame(animate);
@@ -565,8 +617,8 @@ function animateViewportTransform(startTransform, endTransform, duration = 300) 
         return start + (end - start) * easeProgress;
       });
       
-      fabricCanvas.value.viewportTransform = currentTransform;
-      fabricCanvas.value.requestRenderAll();
+      fabricCanvas.viewportTransform = currentTransform;
+      fabricCanvas.requestRenderAll();
       
       if (progress < 1) {
         requestAnimationFrame(animate);
@@ -588,13 +640,13 @@ function setZoomLimits(min, max) {
     maxZoom.value = max;
     
     // Garante que o zoom atual esteja dentro dos novos limites
-    const currentZoom = fabricCanvas.value.getZoom();
+    const currentZoom = fabricCanvas.getZoom();
     if (currentZoom < min || currentZoom > max) {
       const newZoom = Math.min(Math.max(currentZoom, min), max);
-      fabricCanvas.value.setZoom(newZoom);
+      fabricCanvas.setZoom(newZoom);
       zoomLevel.value = newZoom;
       updateBrushWidth();
-      fabricCanvas.value.requestRenderAll();
+      fabricCanvas.requestRenderAll();
     }
   }
 }
@@ -604,15 +656,15 @@ function setZoomLimits(min, max) {
  */
 async function setZoom(level, animate = true) {
   const targetZoom = Math.min(Math.max(level, minZoom.value), maxZoom.value);
-  const currentZoom = fabricCanvas.value.getZoom();
+  const currentZoom = fabricCanvas.getZoom();
 
   if (animate && targetZoom !== currentZoom) {
     await animateZoom(currentZoom, targetZoom, 300);
   } else {
-    fabricCanvas.value.setZoom(targetZoom);
+    fabricCanvas.setZoom(targetZoom);
     zoomLevel.value = targetZoom;
     updateBrushWidth();
-    fabricCanvas.value.requestRenderAll();
+    fabricCanvas.requestRenderAll();
   }
 }
 
@@ -621,8 +673,8 @@ async function setZoom(level, animate = true) {
  */
 async function resetZoom() {
   const targetZoom = Math.min(Math.max(1, minZoom.value), maxZoom.value);
-  const currentZoom = fabricCanvas.value.getZoom();
-  const currentTransform = [...fabricCanvas.value.viewportTransform];
+  const currentZoom = fabricCanvas.getZoom();
+  const currentTransform = [...fabricCanvas.viewportTransform];
   const targetTransform = [1, 0, 0, 1, 0, 0];
   
   // Anima o zoom e o viewport em paralelo
@@ -639,7 +691,7 @@ async function resetZoom() {
  * Faz zoom in (aumenta o zoom) com animação suave
  */
 async function zoomIn(factor = 1.2) {
-  const currentZoom = fabricCanvas.value.getZoom();
+  const currentZoom = fabricCanvas.getZoom();
   const newZoom = Math.min(currentZoom * factor, maxZoom.value);
   
   if (newZoom !== currentZoom) {
@@ -651,7 +703,7 @@ async function zoomIn(factor = 1.2) {
  * Faz zoom out (diminui o zoom) com animação suave
  */
 async function zoomOut(factor = 1.2) {
-  const currentZoom = fabricCanvas.value.getZoom();
+  const currentZoom = fabricCanvas.getZoom();
   const newZoom = Math.max(currentZoom / factor, minZoom.value);
   
   if (newZoom !== currentZoom) {
@@ -666,8 +718,8 @@ async function fitToCanvas() {
 if (!firstImage.value || !secondImage.value) return;
 console.log('fitToCanvas');
 
-  const canvasWidth = fabricCanvas.value.getWidth();
-  const canvasHeight = fabricCanvas.value.getHeight();
+  const canvasWidth = fabricCanvas.getWidth();
+  const canvasHeight = fabricCanvas.getHeight();
 
   
 
@@ -679,8 +731,8 @@ console.log('fitToCanvas');
   const scaleY = canvasHeight / maxImageHeight;
   const targetZoom = Math.min(Math.max(Math.min(scaleX, scaleY), minZoom.value), maxZoom.value);
 
-  const currentZoom = fabricCanvas.value.getZoom();
-  const currentTransform = [...fabricCanvas.value.viewportTransform];
+  const currentZoom = fabricCanvas.getZoom();
+  const currentTransform = [...fabricCanvas.viewportTransform];
   const targetTransform = [1, 0, 0, 1, 0, 0];
   
   // Anima o zoom e reseta o viewport
@@ -697,25 +749,25 @@ console.log('fitToCanvas');
 }
 
 function setupZoom() {
-    if (!fabricCanvas.value) return;
+    if (!fabricCanvas) return;
 
-    fabricCanvas.value.on('mouse:wheel', function (opt) {
+    fabricCanvas.on('mouse:wheel', function (opt) {
         const delta = opt.e.deltaY;
-        let zoom = fabricCanvas.value.getZoom();
+        let zoom = fabricCanvas.getZoom();
 
         // Calcula o novo nível de zoom
         zoom *= 0.999 ** delta;
         zoom = Math.min(Math.max(zoom, minZoom.value), maxZoom.value);
 
         // Obtém a posição do ponteiro em relação ao canvas
-        const pointer = fabricCanvas.value.getPointer(opt.e);
+        const pointer = fabricCanvas.getPointer(opt.e);
 
         // Para zoom com mouse wheel, mantemos a resposta rápida
         // mas podemos adicionar uma leve suavização
         clearTimeout(wheelZoomTimeout);
         
         // Aplica o zoom imediatamente para responsividade
-        fabricCanvas.value.zoomToPoint({ x: pointer.x, y: pointer.y }, zoom);
+        fabricCanvas.zoomToPoint({ x: pointer.x, y: pointer.y }, zoom);
         zoomLevel.value = zoom;
         
         // Atualiza a largura do pincel baseada no novo zoom
@@ -724,26 +776,26 @@ function setupZoom() {
         opt.e.preventDefault();
         opt.e.stopPropagation();
 
-        fabricCanvas.value.requestRenderAll();
+        fabricCanvas.requestRenderAll();
     });
 
     // Desabilita a seleção de grupo com clique e arraste para evitar conflitos
-    fabricCanvas.value.selection = false;
+    fabricCanvas.selection = false;
 
     // Configurar pan (arrastar para mover visualização) quando zoom > 1
     let isDragging = false;
     let lastPosX = 0;
     let lastPosY = 0;
 
-    fabricCanvas.value.on('mouse:down', function (opt) {
+    fabricCanvas.on('mouse:down', function (opt) {
         const evt = opt.e;
         // Pan com botão do meio do mouse (button 1) ou Alt + clique esquerdo ou zoom > 1
         if (evt.button === 1 || evt.altKey === true) {
             isDragging = true;
-            fabricCanvas.value.selection = false;
+            fabricCanvas.selection = false;
             lastPosX = evt.clientX;
             lastPosY = evt.clientY;
-            fabricCanvas.value.setCursor('grab');
+            fabricCanvas.setCursor('grab');
 
             // Previne o comportamento padrão do botão do meio (scroll)
             if (evt.button === 1) {
@@ -752,42 +804,42 @@ function setupZoom() {
         }
     });
 
-    fabricCanvas.value.on('mouse:move', function (opt) {
+    fabricCanvas.on('mouse:move', function (opt) {
         if (isDragging) {
             const evt = opt.e;
-            const vpt = fabricCanvas.value.viewportTransform;
+            const vpt = fabricCanvas.viewportTransform;
             vpt[4] += evt.clientX - lastPosX;
             vpt[5] += evt.clientY - lastPosY;
-            fabricCanvas.value.requestRenderAll();
+            fabricCanvas.requestRenderAll();
             lastPosX = evt.clientX;
             lastPosY = evt.clientY;
-            fabricCanvas.value.setCursor('grabbing');
+            fabricCanvas.setCursor('grabbing');
         }
     });
 
-    fabricCanvas.value.on('mouse:up', function () {
+    fabricCanvas.on('mouse:up', function () {
         if (isDragging) {
-            fabricCanvas.value.setViewportTransform(fabricCanvas.value.viewportTransform);
+            fabricCanvas.setViewportTransform(fabricCanvas.viewportTransform);
             isDragging = false;
-            fabricCanvas.value.selection = true;
-            fabricCanvas.value.setCursor('default');
+            fabricCanvas.selection = true;
+            fabricCanvas.setCursor('default');
         }
     });
 
     // Previne o menu de contexto ao usar o botão do meio
-    fabricCanvas.value.upperCanvasEl.addEventListener('contextmenu', function (e) {
+    fabricCanvas.upperCanvasEl.addEventListener('contextmenu', function (e) {
         e.preventDefault();
     });
 
     // Previne o comportamento de scroll padrão do botão do meio
-    fabricCanvas.value.upperCanvasEl.addEventListener('mousedown', function (e) {
+    fabricCanvas.upperCanvasEl.addEventListener('mousedown', function (e) {
         if (e.button === 1) {
             e.preventDefault();
         }
     });
     
     // Adiciona listener para manter as imagens centralizadas quando movidas
-    fabricCanvas.value.on('object:moving', function(e) {
+    fabricCanvas.on('object:moving', function(e) {
         const obj = e.target;
         if (obj === firstImage.value || obj === secondImage.value) {
             // Permite movimento mas recentraliza após um pequeno delay
@@ -804,8 +856,8 @@ function setupZoom() {
 function centerImagesInClipPaths() {
     if (!firstImage.value || !secondImage.value || !firstClipPath.value || !secondClipPath.value) return;
 
-    const canvasWidth = fabricCanvas.value.getWidth();
-    const canvasHeight = fabricCanvas.value.getHeight();
+    const canvasWidth = fabricCanvas.getWidth();
+    const canvasHeight = fabricCanvas.getHeight();
 
     // Área do primeiro clipPath (metade esquerda)
     const leftClipWidth = canvasWidth / 2;
@@ -837,14 +889,14 @@ function centerImagesInClipPaths() {
         top: img2CenterY
     });
 
-    fabricCanvas.value.renderAll();
+    fabricCanvas.renderAll();
 }
 
 function addClipPaths() {
     // clips paths must be one on left and one on right. They must be rectangles that touch in the middle
     if (firstImage.value && secondImage.value) {
-        const canvasWidth = fabricCanvas.value.getWidth();
-        const canvasHeight = fabricCanvas.value.getHeight();
+        const canvasWidth = fabricCanvas.getWidth();
+        const canvasHeight = fabricCanvas.getHeight();
 
         const clipPath1 = new Rect({
             left: 0,
@@ -875,10 +927,10 @@ function addClipPaths() {
         firstImage.value.clipPath = clipPath1;
         secondImage.value.clipPath = clipPath2;
 
-        // fabricCanvas.value.add(clipPath1);
-        // fabricCanvas.value.add(clipPath2);
+        // fabricCanvas.add(clipPath1);
+        // fabricCanvas.add(clipPath2);
 
-        fabricCanvas.value.requestRenderAll();
+        fabricCanvas.requestRenderAll();
 
         firstClipPath.value = clipPath1;
         secondClipPath.value = clipPath2;
@@ -933,18 +985,18 @@ async function loadImages() {
     // const top = (containerHeight - canvasHeight) / 2;
 
         // Define o tamanho do canvas
-        fabricCanvas.value.setDimensions({
+        fabricCanvas.setDimensions({
             width: canvasWidth,
             height: canvasHeight,
         });
 
         // set yellow background for canvas
-        fabricCanvas.value.backgroundColor = 'white';
-        fabricCanvas.value.renderAll();
+        fabricCanvas.backgroundColor = 'white';
+        fabricCanvas.renderAll();
 
         // Adiciona as imagens ao canvas.
         // O Fabric trata cada item como um objeto que pode ser movido, rotacionado, etc.
-        fabricCanvas.value.add(imgLeft.set({ 
+        fabricCanvas.add(imgLeft.set({ 
             left: 0, 
             top: 0, 
             evented: true, 
@@ -953,9 +1005,9 @@ async function loadImages() {
             hasControls: true,
             hasBorders: true,
             cornerSize: 10,
-            transparentCorners: true
+            transparentCorners: false
         }));
-        fabricCanvas.value.add(imgRight.set({ 
+        fabricCanvas.add(imgRight.set({ 
             left: imgLeft.width * scale, 
             top: 0, 
             evented: true, 
@@ -964,7 +1016,7 @@ async function loadImages() {
             hasControls: true,
             hasBorders: true,
             cornerSize: 10,
-            transparentCorners: true
+            transparentCorners: false
         }));
 
         // set images
@@ -974,13 +1026,13 @@ async function loadImages() {
 }
 
 function adjustCanvasSize() {
-    if (fabricCanvas.value) {
+    if (fabricCanvas) {
         const container = canvasWrapper.value;
         console.log({
             containerWidth: container ? container.clientWidth : 'N/A',
             containerHeight: container ? container.clientHeight : 'N/A',
-            canvasWidth: fabricCanvas.value.width,
-            canvasHeight: fabricCanvas.value.height,
+            canvasWidth: fabricCanvas.width,
+            canvasHeight: fabricCanvas.height,
         });
         
         if (container) {
@@ -988,12 +1040,12 @@ function adjustCanvasSize() {
             const containerHeight = container.clientHeight;
 
             // Define o tamanho do canvas para não ultrapassar o container
-            fabricCanvas.value.setDimensions({
+            fabricCanvas.setDimensions({
                 width: containerWidth,
                 height: containerHeight
             });
 
-            fabricCanvas.value.renderAll();
+            fabricCanvas.renderAll();
             
             // SEMPRE centraliza as imagens após ajustar o tamanho do canvas
             centerImagesInClipPaths();
@@ -1008,11 +1060,11 @@ function adjustCanvasSize() {
  * Atualiza a largura do pincel baseada no nível de zoom
  */
 function updateBrushWidth() {
-    if (fabricCanvas.value && fabricCanvas.value.freeDrawingBrush) {
-        const zoom = fabricCanvas.value.getZoom();
+    if (fabricCanvas && fabricCanvas.freeDrawingBrush) {
+        const zoom = fabricCanvas.getZoom();
         // A largura do pincel diminui conforme o zoom aumenta
         const adjustedWidth = baseBrushWidth / zoom;
-        fabricCanvas.value.freeDrawingBrush.width = adjustedWidth;
+        fabricCanvas.freeDrawingBrush.width = adjustedWidth;
     }
 }
 
@@ -1020,13 +1072,13 @@ function updateBrushWidth() {
  * Ativa o modo de desenho livre do Fabric.js.
  */
 function activateDrawingMode() {
-    if (fabricCanvas.value) {
-        fabricCanvas.value.isDrawingMode = true;
-        fabricCanvas.value.selection = false; // Desabilita seleção no modo de desenho
-        fabricCanvas.value.freeDrawingBrush = new PencilBrush(fabricCanvas.value);
+    if (fabricCanvas) {
+        fabricCanvas.isDrawingMode = true;
+        fabricCanvas.selection = false; // Desabilita seleção no modo de desenho
+        fabricCanvas.freeDrawingBrush = new PencilBrush(fabricCanvas);
 
         updateBrushWidth(); // Usa a função para definir a largura ajustada ao zoom
-        fabricCanvas.value.freeDrawingBrush.color = '#ef4444'; // Cor do pincel
+        fabricCanvas.freeDrawingBrush.color = '#ef4444'; // Cor do pincel
     }
 }
 
@@ -1035,9 +1087,9 @@ function activateDrawingMode() {
  */
 function activateSelectionMode() {
     activeTool.value = 'select';
-    if (fabricCanvas.value) {
-        fabricCanvas.value.isDrawingMode = false;
-        fabricCanvas.value.selection = true; // Habilita seleção quando ferramenta de seleção está ativa
+    if (fabricCanvas) {
+        fabricCanvas.isDrawingMode = false;
+        fabricCanvas.selection = true; // Habilita seleção quando ferramenta de seleção está ativa
     }
 }
 
@@ -1051,18 +1103,18 @@ function setActiveTool(tool) {
 }
 
 async function addWatermark() {
-    if (!showWatermark.value || !fabricCanvas.value) return;
+    if (!showWatermark.value || !fabricCanvas) return;
 
     // find if watermark already exists
-    const existingWatermark = fabricCanvas.value.getObjects().find(obj => obj.id === 'watermark');
+    const existingWatermark = fabricCanvas.getObjects().find(obj => obj.id === 'watermark');
     if (existingWatermark) {
         watermark.value = existingWatermark;
         existingWatermark.set({
             opacity: 0.6,
         });
-        fabricCanvas.value.bringObjectToFront(existingWatermark);
+        fabricCanvas.bringObjectToFront(existingWatermark);
         updateWatermarkPosition();
-        fabricCanvas.value.requestRenderAll();
+        fabricCanvas.requestRenderAll();
         return;
     }
 
@@ -1085,9 +1137,9 @@ async function addWatermark() {
         // Posiciona usando a função de viewport
         updateWatermarkPosition();
 
-        fabricCanvas.value.add(watermarkObj);
-        fabricCanvas.value.bringObjectToFront(watermarkObj);
-        fabricCanvas.value.requestRenderAll();
+        fabricCanvas.add(watermarkObj);
+        fabricCanvas.bringObjectToFront(watermarkObj);
+        fabricCanvas.requestRenderAll();
     });
 }
 
@@ -1097,8 +1149,8 @@ async function toggleWatermark() {
         await addWatermark();
     } else {
         // Remove a marca d'água
-        fabricCanvas.value.overlayImage = null;
-        fabricCanvas.value.requestRenderAll();
+        fabricCanvas.overlayImage = null;
+        fabricCanvas.requestRenderAll();
     }
 }
 
@@ -1106,11 +1158,11 @@ async function toggleWatermark() {
  * Atualiza a posição da marca d'água para sempre ficar no canto inferior direito do viewport
  */
 function updateWatermarkPosition() {
-    if (!fabricCanvas.value || !watermark.value) return;
+    if (!fabricCanvas || !watermark.value) return;
     
-    const zoom = fabricCanvas.value.getZoom();
-    const canvasWidth = fabricCanvas.value.getWidth();
-    const canvasHeight = fabricCanvas.value.getHeight();
+    const zoom = fabricCanvas.getZoom();
+    const canvasWidth = fabricCanvas.getWidth();
+    const canvasHeight = fabricCanvas.getHeight();
     
     // Posição desejada no viewport (canto inferior direito com margem)
     const margin = 20;
@@ -1132,7 +1184,7 @@ function updateWatermarkPosition() {
         scaleY: baseScale / zoom  // Compensa o zoom
     });
     
-    fabricCanvas.value.renderAll();
+    fabricCanvas.renderAll();
 }
 
 

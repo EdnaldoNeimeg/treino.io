@@ -6,10 +6,9 @@ import { createPinia } from 'pinia'
 import { vueDefineCustomElement } from './createCustomElement'
 import App from './App.ce.vue'
 
-import VueClickAway from "vue3-click-away";
-    
+
 const pinia = createPinia()
-const plugins = [pinia, VueClickAway]
+const plugins = [pinia]
 const AppElement = vueDefineCustomElement(App, { plugins })
 
 customElements.define('image-annotator', AppElement)

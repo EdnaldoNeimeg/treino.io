@@ -251,13 +251,14 @@
                                 class="flex gap-4 items-center justify-center text-xs"
                                 :class="['w-[10px]']"
                             >
-                                <div
-                                    class="rounded-full aspect-square bg-slate-700"
+                                <button
+                                    class="rounded-full aspect-square bg-slate-700 hover:outline transition-colors cursor-pointer focus:outline-2 outline-offset-2 outline-primary-500"
                                     :style="{
                                         width: `${value}px`,
                                         height: `${value}px`
                                     }"
-                                ></div>
+                                    @click="objectStrokeWidthMultiplier = value"
+                                ></button>
                             </div>
                         </div>
                     </div>
@@ -307,7 +308,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { Canvas, FabricImage, Rect, PencilBrush, classRegistry } from 'fabric'
+import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, ActiveSelection } from 'fabric'
 
 import ColorSelector from '@/components/ColorSelector.vue';
 
@@ -317,6 +318,9 @@ import Arrow from '@/fabricClasses/Arrow.js';
 // const rangeInput = useRangeInput();
 
 classRegistry.setClass(Arrow);
+
+// Define um nome de componente multi-palavra para atender a regra de lint
+defineOptions({ name: 'ImageAnnotatorApp' });
 
 // === DOCUMENTAÇÃO DO SCRIPT ===
 
@@ -336,8 +340,7 @@ const props = defineProps({
 
 const ready = ref(false);
 
-// Variáveis para zoom suave com mouse wheel
-let wheelZoomTimeout = null;
+// Variáveis para zoom suave com mouse wheel (removidas se não usadas)
 
 // 2. VARIÁVEIS DE REFERÊNCIA
 
@@ -618,28 +621,31 @@ async function addDrawingArea() {
     // Armazena a referência
     drawingArea.value = drawingAreaRect;
     
-    // Adiciona listener para atualizar os inputs quando redimensionado
-    drawingAreaRect.on('scaling', () => {
-        if (!isDrawingAreaUpdating) {
-            isDrawingAreaUpdating = true;
-            const newWidth = Math.round(drawingAreaRect.width * drawingAreaRect.scaleX);
-            const newHeight = Math.round(drawingAreaRect.height * drawingAreaRect.scaleY);
-            drawingAreaWidth.value = newWidth;
-            drawingAreaHeight.value = newHeight;
+    // // Adiciona listener para atualizar os inputs quando redimensionado
+    // drawingAreaRect.on('scaling', () => {
+    //     if (!isDrawingAreaUpdating) {
+    //         isDrawingAreaUpdating = true;
+    //         const newWidth = Math.round(drawingAreaRect.width * drawingAreaRect.scaleX);
+    //         const newHeight = Math.round(drawingAreaRect.height * drawingAreaRect.scaleY);
+    //         drawingAreaWidth.value = newWidth;
+    //         drawingAreaHeight.value = newHeight;
             
-            // Redimensiona os clipPaths em tempo real
-            updateClipPathsSize();
+    //         // Redimensiona os clipPaths em tempo real
+    //         updateClipPathsSize();
             
-            // Atualiza a posição da watermark em tempo real
-            updateWatermarkPosition();
+    //         // Atualiza a posição da watermark em tempo real
+    //         updateWatermarkPosition();
             
-            isDrawingAreaUpdating = false;
-        }
-    });
+    //         isDrawingAreaUpdating = false;
+    //     }
+    // });
 
-    drawingAreaRect.on('modified', () => {
+    drawingAreaRect.on('modified', async () => {
         if (!isDrawingAreaUpdating) {
             isDrawingAreaUpdating = true;
+            // Guarda o tamanho antigo antes de aplicar o novo
+            const oldWidth = drawingAreaRect.width;
+            const oldHeight = drawingAreaRect.height;
             const newWidth = Math.round(drawingAreaRect.width * drawingAreaRect.scaleX);
             const newHeight = Math.round(drawingAreaRect.height * drawingAreaRect.scaleY);
             drawingAreaWidth.value = newWidth;
@@ -656,6 +662,9 @@ async function addDrawingArea() {
             // Redimensiona os clipPaths para seguir o drawingArea
             updateClipPathsSize();
             
+            // Reposiciona as imagens preservando offsets relativos, se houver
+            await updateImagesPosition({ width: oldWidth, height: oldHeight });
+            
             // Atualiza a posição da watermark após redimensionamento
             updateWatermarkPosition();
             
@@ -670,7 +679,7 @@ async function addDrawingArea() {
 /**
  * Redimensiona os clipPaths baseado nas dimensões do drawingArea
  */
-function updateClipPathsSize() {
+async function updateClipPathsSize() {
     if (!drawingArea.value || !firstClipPath.value || !secondClipPath.value) return;
 
     const drawingAreaWidth = drawingArea.value.width;
@@ -697,10 +706,72 @@ function updateClipPathsSize() {
     fabricCanvas.requestRenderAll();
 }
 
+async function updateImagesPosition(oldSize = null) {
+    if (!drawingArea.value || !firstImage.value || !secondImage.value || !firstClipPath.value || !secondClipPath.value) return;
+
+    const da = drawingArea.value;
+
+    const compute = (img, clip, isLeft) => {
+        const clipLeft = clip.left;
+        const clipTop = clip.top;
+        const clipW = clip.width;
+        const clipH = clip.height;
+
+        const newCenterX = clipLeft + clipW / 2;
+        const newCenterY = clipTop + clipH / 2;
+
+        // // Se a imagem nunca foi movida manualmente ou não temos tamanho antigo, centraliza
+        // if (!oldSize || !img.isManuallyMoved) {
+        //     const left = newCenterX - img.getScaledWidth() / 2;
+        //     const top = newCenterY - img.getScaledHeight() / 2;
+        //     img.set({ left, top });
+        //     img.setCoords();
+        //     return;
+        // }
+
+        // Calcula centro do clip antigo baseado no tamanho anterior do drawingArea (mantendo o centro do drawingArea)
+        const oldDAW = oldSize.width;
+        const oldDAH = oldSize.height;
+        const oldDALeft = da.left - oldDAW / 2;
+        const oldDATop = da.top - oldDAH / 2;
+        const oldClipW = oldDAW / 2;
+        const oldClipH = oldDAH;
+        const oldClipLeft = isLeft ? oldDALeft : oldDALeft + oldDAW / 2;
+        const oldClipTop = oldDATop;
+        const oldClipCenterX = oldClipLeft + oldClipW / 2;
+        const oldClipCenterY = oldClipTop + oldClipH / 2;
+
+        // Centro atual da imagem (antes de reposicionar)
+        const imgCenterX = img.left + img.getScaledWidth() / 2;
+        const imgCenterY = img.top + img.getScaledHeight() / 2;
+
+        // Offset relativo normalizado em relação ao clip antigo
+        const dxNorm = (imgCenterX - oldClipCenterX) / (oldClipW / 2 || 1);
+        const dyNorm = (imgCenterY - oldClipCenterY) / (oldClipH / 2 || 1);
+
+        // Aplica o mesmo offset relativo no novo clip
+        const dx = dxNorm * (clipW / 2);
+        const dy = dyNorm * (clipH / 2);
+
+        const finalCenterX = newCenterX + dx;
+        const finalCenterY = newCenterY + dy;
+
+        const left = finalCenterX - img.getScaledWidth() / 2;
+        const top = finalCenterY - img.getScaledHeight() / 2;
+        img.set({ left, top });
+        img.setCoords();
+    };
+
+    compute(firstImage.value, firstClipPath.value, true);
+    compute(secondImage.value, secondClipPath.value, false);
+
+    fabricCanvas.requestRenderAll();
+}
+
 /**
  * Atualiza as dimensões da área de desenho baseado nos inputs do usuário
  */
-function updateDrawingAreaDimensions(oldValues, newValues) {
+async function updateDrawingAreaDimensions(oldValues, newValues) {
     if (!drawingArea.value || !fabricCanvas || isDrawingAreaUpdating) return;
 
     isDrawingAreaUpdating = true;
@@ -713,6 +784,12 @@ function updateDrawingAreaDimensions(oldValues, newValues) {
         return;
     }
 
+    // Captura tamanho antigo para preservar posição relativa das imagens movidas
+    const oldSize = {
+        width: parseInt(oldValues?.[0]) || drawingArea.value.width,
+        height: parseInt(oldValues?.[1]) || drawingArea.value.height,
+    };
+
     // Atualiza as dimensões da área de desenho
     drawingArea.value.set({
         width: newWidth,
@@ -724,7 +801,10 @@ function updateDrawingAreaDimensions(oldValues, newValues) {
     fabricCanvas.requestRenderAll();
     
     // Redimensiona os clipPaths para seguir o drawingArea
-    updateClipPathsSize();
+    await updateClipPathsSize();
+
+    // Atualiza a posição das imagens com base no tamanho anterior
+    await updateImagesPosition(oldSize);
     
     // Atualiza a posição da watermark
     updateWatermarkPosition();
@@ -745,7 +825,7 @@ function saveCanvasState() {
     redoStack.value = [];
 
     // Serializa o canvas para JSON, incluindo propriedades personalizadas
-    const state = fabricCanvas.toJSON(['id', 'clipPath', 'selectable', 'evented', 'absolutePositioned']);
+    const state = fabricCanvas.toJSON(['id', 'clipPath', 'selectable', 'evented', 'absolutePositioned', 'isManuallyMoved']);
 
     // Adiciona o estado à pilha de desfazer
     undoStack.value.push(state);
@@ -836,17 +916,53 @@ function setupCanvasStateListeners() {
             saveCanvasState();
         },
         'selection:created': (e) => {
-            console.log('Selection created:', e.selected);
+            console.log(e);
             if (e.selected.length > 1) {
-                fabricCanvas.discardActiveObject();
+                const objectsToIgnore = e.selected.filter(o => o.id === 'drawingArea' || o.class === 'resize-handle');
+
+                const selection = fabricCanvas.getActiveObject();
+
+                applyControlStyles(selection);
+
+                if (selection && selection.type === 'activeselection') {
+                    objectsToIgnore.forEach(obj => {
+                        selection.remove(obj);
+                    });
+                    // if (selection.size() === 1) {
+                    //     fabricCanvas.setActiveObject(selection.item(0));
+                    //     manageSelection(selection.item(0));
+                    // } else {
+                    //     fabricCanvas.discardActiveObject();
+                    //     manageSelection(null);
+                    // }
+                    fabricCanvas.requestRenderAll();
+                }
+
             } else {
                 manageSelection(e.selected[0]);
             }
         },
         'selection:updated': (e) => {
-            console.log('Selection updated:', e.selected);
             if (e.selected.length > 1) {
-                fabricCanvas.discardActiveObject();
+                const objectsToIgnore = e.selected.filter(o => o.id === 'drawingArea' || o.class === 'resize-handle');
+
+                const selection = fabricCanvas.getActiveObject();
+
+                applyControlStyles(selection);
+
+                if (selection && selection.type === 'activeselection') {
+                    objectsToIgnore.forEach(obj => {
+                        selection.remove(obj);
+                    });
+                    // if (selection.size() === 1) {
+                    //     fabricCanvas.setActiveObject(selection.item(0));
+                    //     manageSelection(selection.item(0));
+                    // } else {
+                    //     fabricCanvas.discardActiveObject();
+                    //     manageSelection(null);
+                    // }
+                    fabricCanvas.requestRenderAll();
+                }
             } else {
                 manageSelection(e.selected[0]);
             }
@@ -1273,13 +1389,11 @@ function setupFabricEvents() {
     fabricCanvas.on('object:moving', function(e) {
         const obj = e.target;
         if (obj === firstImage.value || obj === secondImage.value) {
-            // Permite movimento mas recentraliza após um pequeno delay
-            setTimeout(() => {
-                centerImagesInClipPaths();
-            }, 10);
+            // Marca que a imagem foi movida manualmente; não recentraliza automaticamente
+            obj.isManuallyMoved = true;
         }
 
-        if( obj.class === 'resize-handle' ) {
+        if (obj.class === 'resize-handle') {
             if (obj.id === 'leftHandle' || obj.id === 'rightHandle') {
                 const drawingAreaObj = fabricCanvas.getObjects().find(o => o.id === 'drawingArea');
                 if (drawingAreaObj) {
@@ -1479,9 +1593,9 @@ async function loadImages() {
         imgLeft.scale(scale);
         imgRight.scale(scale);
 
-        // set id for images
-        imgLeft.set({ id: 'leftImage' });
-        imgRight.set({ id: 'rightImage' });
+    // set id for images e flags iniciais
+    imgLeft.set({ id: 'leftImage', isManuallyMoved: false });
+    imgRight.set({ id: 'rightImage', isManuallyMoved: false });
 
         // Calcula as dimensões finais do canvas
         const canvasWidth = Math.min(totalImageWidth * scale, containerWidth);

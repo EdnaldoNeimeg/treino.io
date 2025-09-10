@@ -3,9 +3,9 @@
     <div class="relative">
         <div class="flex flex-wrap -mx-1">
             <button
-                id="toggle-color-selector"
+                ref="toggleColorSelector"
                 class="w-6 h-6 m-0.5 cursor-pointer border border-slate-300 flex items-center justify-center bg-gradient-to-br bg-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary-500 hover:ring-2 hover:ring-offset-1 hover:ring-primary-500"
-                @click="showSelector = !showSelector"
+                @click="toggleSelector"
                 title="Abrir seletor de cores"
             >
                 <iconify-icon icon="mdi:palette-outline" class="flex items-center justify-center h-6 w-6 text-base text-black"></iconify-icon>
@@ -22,10 +22,9 @@
         </div>
         <div
             v-show="showSelector"
-            id="color-selector-popup"
+            ref="colorSelectorPopup"
             class="absolute opacity-0 -top-10 right-44 min-w-full p-4 bg-white border border-gray-300 rounded shadow-lg z-10 transition-all duration-300"
             :class="{ 'opacity-100 right-56!': showSelector }"
-            v-click-away="onClickAway"
         >
             <div class="mb-4 flex gap-2">
                 <div>
@@ -115,7 +114,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -125,6 +124,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'colorSelected'])
+
+const toggleColorSelector = ref(null)
+const colorSelectorPopup = ref(null)
 
 // State
 const showSelector = ref(false)
@@ -218,10 +220,6 @@ function updateFromManualInput() {
   }
 }
 
-function onClickAway() {
-  showSelector.value = false
-}
-
 function validateManualColor() {
   const color = manualColor.value.trim()
   if (color && !isValidHexColor(color)) {
@@ -233,6 +231,48 @@ function validateManualColor() {
     emitUpdate()
   }
 }
+
+// Click away functionality usando composedPath para Web Components
+function handleClickOutside(event) {
+  // Se o popup não está aberto, não faz nada
+  if (!showSelector.value) return
+  
+  // Usar composedPath para obter todos os elementos no caminho do evento
+  const path = event.composedPath()
+  
+  // Verificar se algum elemento no path é o botão toggle ou o popup
+  const isToggleClick = path.some(element => 
+    element === toggleColorSelector.value
+  )
+  
+  const isPopupClick = path.some(element => 
+    element === colorSelectorPopup.value
+  )
+  
+  // Se clicou no toggle ou no popup, não fecha
+  if (isToggleClick || isPopupClick) {
+    return
+  }
+  
+  // Se chegou aqui, clicou fora - fecha o popup
+  showSelector.value = false
+}
+
+// Função para alternar o seletor
+function toggleSelector() {
+  showSelector.value = !showSelector.value
+}
+
+// Lifecycle hooks
+onMounted(() => {
+  // Adiciona listener no documento com capture para pegar eventos antes que sejam processados
+  document.addEventListener('mousedown', handleClickOutside, true)
+})
+
+onUnmounted(() => {
+  // Remove listener
+  document.removeEventListener('mousedown', handleClickOutside, true)
+})
 
 function emitUpdate() {
   // Convert opacity (0-100) to alpha (0-255) then to hex

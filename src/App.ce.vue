@@ -116,11 +116,10 @@
                                     <small>6</small>
                                 </span>
                             </button>
-                            <button @click="setActiveTool('arrow')"
+                            <button @click="setActiveTool('text')"
                                 class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'arrow' }"
+                                :class="{ 'bg-primary-500! text-white': activeTool === 'text' }"
                             >
-                                <!-- text icon -->
                                 <iconify-icon icon="iconoir:text" class="text-base inline-block"></iconify-icon>
                                 <span class="text-sm absolute bottom-0.5 right-1">
                                     <small>7</small>
@@ -152,7 +151,7 @@
         </div>
         <div
             v-if="ready"
-            class="absolute cursor-initial top-1/2 -translate-y-1/2 w-56 bg-white z-10 border border-slate-200 rounded p-4 shadow-lg text-xs transition-all duration-500 opacity-0 pointer-events-none -right-16"
+            class="absolute cursor-initial top-1/2 -translate-y-1/2 w-56 bg-white z-10 border border-slate-200 rounded p-4 shadow-lg text-xs transition-all duration-500 opacity-0 pointer-events-none -right-16 max-h-[80%]"
 
             :class="{
                 'opacity-100! pointer-events-auto! right-2!': 
@@ -162,6 +161,7 @@
                     activeObject.class !== 'resize-handle'
                 ) || (
                     activeTool === 'draw' ||
+                    activeTool === 'text' ||
                     activeTool === 'rectangle' ||
                     activeTool === 'circle' ||
                     activeTool === 'line' ||
@@ -169,8 +169,11 @@
                 )
             }"
         >
-            <template v-if="activeObject && (activeTool === null || activeTool === 'select')">
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 mb-4">
+            <template v-if="
+                activeObject && (
+                    activeTool === null || activeTool === 'select' || activeObject.type === 'i-text'
+                )">
+                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>Escala:</div>
                         <div>
@@ -220,7 +223,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 mb-4">
+                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>Opacidade:</div>
                         <div>{{ objectOpacity * 100 }}%</div>
@@ -238,7 +241,7 @@
                 </div>
             </template>
             <template v-if="activeTool === 'draw'">
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 mb-4">
+                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>Espessura:</div>
                         <div>{{ objectStrokeWidthMultiplier }}</div>
@@ -276,7 +279,7 @@
             </template>
 
             <template v-if="activeTool === 'draw'">
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 mb-4">
+                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>Cor:</div>
                         <div>{{ freeDrawingBrushColor }}</div>
@@ -286,6 +289,81 @@
                             v-model="freeDrawingBrushColor"
                             @close="closeColorPicker"
                         />
+                    </div>
+                </div>
+            </template>
+
+            <template v-if="
+                activeTool === 'text' ||
+                (
+                    activeObject && activeObject.type === 'i-text' && (
+                        activeTool === null || activeTool === 'select'
+                    )
+                )
+            ">
+                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                    <div class="flex items-center justify-between text-xs">
+                        <div>Cor do Texto:</div>
+                        <div>{{ textColor }}</div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <ColorSelector
+                            v-model="textColor"
+                            @close="closeColorPicker"
+                        />
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                    <div class="flex items-center justify-between text-xs">
+                        <div>Tamanho da Fonte:</div>
+                        <div>{{ textFontSize }}px</div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <input
+                            type="range"
+                            class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer range-sm  [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-[12px] [&::-webkit-slider-thumb]:w-[12px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500"
+                            min="8"
+                            max="120"
+                            step="2"
+                            v-model="textFontSize"
+                        >
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                    <div class="flex items-center justify-between text-xs">
+                        <div>Família da Fonte:</div>
+                    </div>
+                    <select v-model="textFontFamily" class="w-full p-2 text-xs border border-slate-200 rounded bg-slate-100">
+                        <option value="Arial">Arial</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Helvetica">Helvetica</option>
+                        <option value="Georgia">Georgia</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Courier New">Courier New</option>
+                    </select>
+                </div>
+
+                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                    <div class="flex items-center justify-between text-xs">
+                        <div>Estilo:</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button @click="textIsBold = !textIsBold" 
+                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs font-bold transition-colors"
+                                :class="textIsBold ? 'bg-primary-500 text-white border-primary-500' : 'bg-slate-100 hover:bg-slate-200'">
+                            B
+                        </button>
+                        <button @click="textIsItalic = !textIsItalic" 
+                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs italic transition-colors"
+                                :class="textIsItalic ? 'bg-primary-500 text-white border-primary-500' : 'bg-slate-100 hover:bg-slate-200'">
+                            I
+                        </button>
+                        <button @click="textIsUnderline = !textIsUnderline" 
+                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs underline transition-colors"
+                                :class="textIsUnderline ? 'bg-primary-500 text-white border-primary-500' : 'bg-slate-100 hover:bg-slate-200'">
+                            U
+                        </button>
                     </div>
                 </div>
             </template>
@@ -318,7 +396,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, Control } from 'fabric'
+import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, IText } from 'fabric'
 
 import ColorSelector from '@/components/ColorSelector.vue';
 
@@ -403,6 +481,14 @@ const baseBrushWidth = ref(1); // Largura base do pincel
 const objectStrokeWidthMultiplier = ref(3); // Multiplicador da largura do pincel
 const freeDrawingBrushColor = ref('#F57C00'); // Cor do pincel de desenho livre
 
+// Variáveis para a ferramenta de texto
+const textFontSize = ref(24); // Tamanho da fonte
+const textFontFamily = ref('Arial'); // Família da fonte
+const textColor = ref('#000000'); // Cor do texto
+const textIsBold = ref(false); // Texto em negrito
+const textIsItalic = ref(false); // Texto em itálico
+const textIsUnderline = ref(false); // Texto sublinhado
+
 const handlersColor = '#d1d5d9';
 const handlersColorOver = '#c0c4c8';
 const cornerHandlersColor = '#b4c3d8';
@@ -420,6 +506,7 @@ onMounted(async () => {
     // Inicializa o Fabric.js, associando-o ao nosso elemento canvas.
     fabricCanvas = new Canvas(canvasEl.value, {
         preserveObjectStacking: true, // Permite que objetos fiquem acima de outros
+        selectionFullyContained: true, // Seleciona apenas objetos totalmente dentro do retângulo de seleção
     });
 
     window.fabricCanvas = fabricCanvas;
@@ -554,6 +641,64 @@ watch(freeDrawingBrushColor, (newColor) => {
         fabricCanvas.requestRenderAll();
         console.log('Cor do pincel atualizada para:', newColor);
         
+    }
+});
+
+watch(textFontSize, (newSize) => {
+    
+    if (activeObject.value && activeObject.value.type === 'i-text') {
+        activeObject.value.set({
+            fontSize: newSize
+        });
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
+    }
+});
+
+watch(textFontFamily, (newFamily) => {
+    if (activeObject.value && activeObject.value.type === 'i-text') {
+        activeObject.value.set({
+            fontFamily: newFamily
+        });
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
+    }
+});
+
+watch(textColor, (newColor) => {
+    if (activeObject.value && activeObject.value.type === 'i-text') {
+        activeObject.value.set({
+            fill: newColor
+        });
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
+    }
+});
+watch(textIsBold, (isBold) => {
+    if (activeObject.value && activeObject.value.type === 'i-text') {
+        activeObject.value.set({
+            fontWeight: isBold ? 'bold' : 'normal'
+        });
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
+    }
+});
+watch(textIsItalic, (isItalic) => {
+    if (activeObject.value && activeObject.value.type === 'i-text') {
+        activeObject.value.set({
+            fontStyle: isItalic ? 'italic' : 'normal'
+        });
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
+    }
+});
+watch(textIsUnderline, (isUnderline) => {
+    if (activeObject.value && activeObject.value.type === 'i-text') {
+        activeObject.value.set({
+            underline: isUnderline
+        });
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
     }
 });
 
@@ -923,6 +1068,7 @@ function setupCanvasStateListeners() {
             if (path) {
                 // Garante seleção precisa por pixel
                 path.set({ perPixelTargetFind: true });
+                path.padding = 4;
                 // Atribui um ID único somente se ainda não houver um
                 if (!path.id) {
                     const uid = `path-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -956,6 +1102,7 @@ function setupCanvasStateListeners() {
 
             } else {
                 manageSelection(e.selected[0]);
+                applyControlStyles(e.selected[0]);
             }
         },
         'selection:updated': (e) => {
@@ -1028,6 +1175,63 @@ function handleKeyDown(e) {
     if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
         e.preventDefault();
         redo();
+    }
+    // Atalho para Remover: Delete ou Backspace
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        removeSelectedObjects();
+    }
+}
+
+/**
+ * Remove os objetos selecionados do canvas
+ */
+function removeSelectedObjects() {
+    if (!fabricCanvas) return;
+    
+    const activeObject = fabricCanvas.getActiveObject();
+    
+    if (!activeObject) return;
+    
+    // Verifica se é uma seleção múltipla
+    if (activeObject.type === 'activeSelection') {
+        if(activeObject.id === 'leftImage' || activeObject.id === 'rightImage'){
+            alert('Ainda não é possível remover as imagens principais porque não há como adicioná-las novamente.');
+            return; // Não remove elementos essenciais
+        }
+
+        const objectsToRemove = activeObject.getObjects().filter(obj => {
+            // Não permite remover imagens principais, área de desenho ou handlers de resize
+            return obj.id !== 'drawingArea' && 
+                   obj.id !== 'watermark' &&
+                   obj.class !== 'resize-handle';
+        });
+        
+        if (objectsToRemove.length > 0) {
+            objectsToRemove.forEach(obj => {
+                fabricCanvas.remove(obj);
+            });
+            fabricCanvas.discardActiveObject();
+            fabricCanvas.requestRenderAll();
+            saveCanvasState();
+        }
+    } else {
+        if(activeObject.id === 'leftImage' || activeObject.id === 'rightImage'){
+            alert('Ainda não é possível remover as imagens principais porque não há como adicioná-las novamente.');
+            return; // Não remove elementos essenciais
+        }
+        // Verificações de segurança - não permite remover elementos essenciais
+        if (activeObject.id === 'drawingArea' ||
+            activeObject.id === 'watermark' ||
+            activeObject.class === 'resize-handle') {
+            return; // Não remove elementos essenciais
+        }
+        
+        // Remove o objeto único selecionado
+        fabricCanvas.remove(activeObject);
+        fabricCanvas.discardActiveObject();
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
     }
 }
 
@@ -1349,6 +1553,35 @@ console.log('fitToCanvas');
   addDrawingArea();
 }
 
+function createText(x, y) {
+    const text = new IText('Digite aqui...', {
+        left: x,
+        top: y,
+        fontSize: textFontSize.value,
+        fontFamily: textFontFamily.value,
+        fill: textColor.value,
+        fontWeight: textIsBold.value ? 'bold' : 'normal',
+        fontStyle: textIsItalic.value ? 'italic' : 'normal',
+        underline: textIsUnderline.value,
+        editable: true,
+        cornerColor: '#4285f4',
+        cornerStyle: 'circle',
+        transparentCorners: false,
+        cornerSize: 8,
+        rotatingPointOffset: 40,
+    });
+
+    fabricCanvas.add(text);
+    fabricCanvas.setActiveObject(text);
+    fabricCanvas.renderAll();
+    
+    // Entra em modo de edição automaticamente
+    text.enterEditing();
+    text.selectAll();
+
+    saveCanvasState();
+}
+
 function setupFabricEvents() {
     if (!fabricCanvas) return;
 
@@ -1408,8 +1641,42 @@ function setupFabricEvents() {
     let lastPosX = 0;
     let lastPosY = 0;
 
+    fabricCanvas.on('text:editing:entered', function () {
+        activeTool.value = 'text';
+    });
+
+    fabricCanvas.on('text:editing:exited', function () {
+        activeTool.value = 'select';
+        
+        fabricCanvas.isDrawingMode = false;
+        fabricCanvas.selection = true; // Permite selecionar textos existentes
+        fabricCanvas.defaultCursor = 'default';
+        fabricCanvas.hoverCursor = 'default';
+        fabricCanvas.requestRenderAll();
+
+        saveCanvasState();
+    });
+
     fabricCanvas.on('mouse:down', function (opt) {
         const evt = opt.e;
+        
+        // Funcionalidade de texto - criar texto no clique
+        if (activeTool.value === 'text') {
+            // Verifica se já existe um texto em modo de edição
+            const editingText = fabricCanvas.getObjects().find(obj => 
+                obj.type === 'i-text' && obj.isEditing
+            );
+            
+            // Se já existe um texto sendo editado, não cria um novo
+            if (editingText) {
+                return;
+            }
+            
+            const pointer = fabricCanvas.getPointer(evt);
+            createText(pointer.x, pointer.y);
+            return;
+        }
+        
         // Pan com botão do meio do mouse (button 1) ou Alt + clique esquerdo ou zoom > 1
         if (evt.button === 1 || evt.altKey === true) {
             isDragging = true;
@@ -1923,12 +2190,6 @@ async function loadImages() {
 function adjustCanvasSize() {
     if (fabricCanvas) {
         const container = canvasWrapper.value;
-        console.log({
-            containerWidth: container ? container.clientWidth : 'N/A',
-            containerHeight: container ? container.clientHeight : 'N/A',
-            canvasWidth: fabricCanvas.width,
-            canvasHeight: fabricCanvas.height,
-        });
         
         if (container) {
             const containerWidth = container.clientWidth;
@@ -1995,6 +2256,18 @@ function activateSelectionMode() {
     if (fabricCanvas) {
         fabricCanvas.isDrawingMode = false;
         fabricCanvas.selection = true; // Habilita seleção quando ferramenta de seleção está ativa
+        fabricCanvas.defaultCursor = 'default';
+        fabricCanvas.hoverCursor = 'move';
+    }
+}
+
+function activateTextMode() {
+    activeTool.value = 'text';
+    if (fabricCanvas) {
+        fabricCanvas.isDrawingMode = false;
+        fabricCanvas.selection = true; // Permite selecionar textos existentes
+        fabricCanvas.defaultCursor = 'text';
+        fabricCanvas.hoverCursor = 'text';
     }
 }
 
@@ -2004,6 +2277,8 @@ function setActiveTool(tool) {
         activateDrawingMode();
     } else if(tool === 'select') {
         activateSelectionMode();
+    } else if(tool === 'text') {
+        activateTextMode();
     }
 }
 

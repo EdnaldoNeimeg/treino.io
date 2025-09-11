@@ -23,7 +23,7 @@
         <div
             v-show="showSelector"
             ref="colorSelectorPopup"
-            class="absolute opacity-0 -top-10 right-44 min-w-full p-4 bg-white border border-gray-300 rounded shadow-lg z-10 transition-all duration-300"
+            class="absolute opacity-0 top-1/2 -translate-y-1/2 right-44 min-w-full p-4 bg-white border border-gray-300 rounded shadow-lg z-10 transition-all duration-300"
             :class="{ 'opacity-100 right-56!': showSelector }"
         >
             <div class="mb-4 flex gap-2">

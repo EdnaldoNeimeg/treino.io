@@ -116,13 +116,23 @@
                                     <small>6</small>
                                 </span>
                             </button>
+                            <button @click="setActiveTool('arrow')"
+                                class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
+                                :class="{ 'bg-primary-500! text-white': activeTool === 'arrow' }"
+                            >
+                                <!-- text icon -->
+                                <iconify-icon icon="iconoir:text" class="text-base inline-block"></iconify-icon>
+                                <span class="text-sm absolute bottom-0.5 right-1">
+                                    <small>7</small>
+                                </span>
+                            </button>
                             <button @click="setActiveTool('eraser')"
                                 class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
                                 :class="{ 'bg-primary-500! text-white': activeTool === 'eraser' }"
                             >
                                 <iconify-icon icon="lineicons:eraser" class="text-sm inline-block"></iconify-icon>
                                 <span class="text-xs absolute bottom-0.5 right-1">
-                                    <small>7</small>
+                                    <small>8</small>
                                 </span>
                             </button>
                         </div>
@@ -308,7 +318,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { Canvas, FabricImage, Rect, PencilBrush, classRegistry } from 'fabric'
+import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, Control } from 'fabric'
 
 import ColorSelector from '@/components/ColorSelector.vue';
 
@@ -395,6 +405,12 @@ const freeDrawingBrushColor = ref('#F57C00'); // Cor do pincel de desenho livre
 
 const handlersColor = '#d1d5d9';
 const handlersColorOver = '#c0c4c8';
+const cornerHandlersColor = '#b4c3d8';
+const cornerHandlersColorOver = '#8494ab';
+
+// Handlers dos cantos para redimensionamento diagonal
+const cornerHandleSize = 50; // Tamanho do L
+const cornerThickness = 10; // Espessura da linha do L
 
 // 3. CICLO DE VIDA 'onMounted'
 // O código dentro do 'onMounted' só executa *depois* que o componente foi montado na página.
@@ -585,7 +601,7 @@ async function addDrawingArea() {
         stroke: 'oklch(67.72% 0.103 40.38)', // Cor da borda azul
         borderColor: 'oklch(67.72% 0.103 40.38)',
         cornerColor: 'orange',
-        strokeWidth: 2,
+        strokeWidth: 0,
         strokeUniform: true,
         selectable: false,
         evented: true,
@@ -916,7 +932,7 @@ function setupCanvasStateListeners() {
             saveCanvasState();
         },
         'selection:created': (e) => {
-            console.log(e);
+            // console.log(e);
             if (e.selected.length > 1) {
                 const objectsToIgnore = e.selected.filter(o => o.id === 'drawingArea' || o.class === 'resize-handle');
 
@@ -944,33 +960,36 @@ function setupCanvasStateListeners() {
         },
         'selection:updated': (e) => {
             const objectsToIgnore = e.selected.filter(o => o.id === 'drawingArea' || o.class === 'resize-handle');
-            if (e.selected.length > 1) {
-
-                const selection = fabricCanvas.getActiveObject();
-
-                if (selection && selection.type.toLowerCase() === 'activeselection') {
+            const activeSelection = fabricCanvas.getActiveObject();
+            if (activeSelection?._objects?.length > 1) {
+                
+                if (activeSelection) {
+                    
                     objectsToIgnore.forEach(obj => {
-                        selection.remove(obj);
+                        activeSelection.remove(obj);
                     });
-                    // if (selection.size() === 1) {
-                    //     fabricCanvas.setActiveObject(selection.item(0));
-                    //     manageSelection(selection.item(0));
-                    // } else {
-                    //     fabricCanvas.discardActiveObject();
-                    //     manageSelection(null);
-                    // }
+                    if (activeSelection.size() === 1) {
+                        fabricCanvas.setActiveObject(activeSelection.item(0));
+                        manageSelection(activeSelection.item(0));
+                    } else if (activeSelection.size() === 0) {
+                        fabricCanvas.discardActiveObject();
+                        manageSelection(null);
+                    }
                 }
+
+                applyControlStyles(activeSelection);
+                
             } else {
-                if( e.selected[0].id === 'drawingArea' || e.selected[0].class === 'resize-handle' ) {
-                    fabricCanvas.discardActiveObject();
-                    manageSelection(null);
+                manageSelection(e.selected[0]);
+                
+                if(activeSelection?._objects?.length > 1) {
+                    applyControlStyles(activeSelection);
                 } else {
-                    manageSelection(e.selected[0]);
+                    if(activeSelection.id !== 'drawingArea' && activeSelection.class !== 'resize-handle') {
+                        applyControlStyles(activeSelection);
+                    }
                 }
             }
-
-            
-            applyControlStyles(fabricCanvas.getActiveObject());
         },
         'selection:cleared': () => {
             manageSelection(null);
@@ -1029,6 +1048,7 @@ function addDrawingAreaHandlers() {
         hasBorders: false,
         selectable: true,
         class: 'resize-handle',
+        padding: 2,
     };
 
     const leftHandle = new Rect({
@@ -1036,7 +1056,7 @@ function addDrawingAreaHandlers() {
         left: drawingArea.value.left - drawingArea.value.width / 2,
         top: drawingArea.value.top,
         width: 10,
-        height: drawingArea.value.height + 10,
+        height: drawingArea.value.height - 90,
         id: 'leftHandle',
         lockMovementY: true,
         hoverCursor: 'ew-resize',
@@ -1047,7 +1067,7 @@ function addDrawingAreaHandlers() {
         left: drawingArea.value.left + drawingArea.value.width / 2,
         top: drawingArea.value.top,
         width: 10,
-        height: drawingArea.value.height + 10,
+        height: drawingArea.value.height - 90,
         id: 'rightHandle',
         class: 'resize-handle',
         lockMovementY: true,
@@ -1058,7 +1078,7 @@ function addDrawingAreaHandlers() {
         ...commonProps,
         left: drawingArea.value.left,
         top: drawingArea.value.top - drawingArea.value.height / 2,
-        width: drawingArea.value.width + 10,
+        width: drawingArea.value.width - 90,
         height: 10,
         id: 'topHandle',
         lockMovementX: true,
@@ -1069,50 +1089,73 @@ function addDrawingAreaHandlers() {
         ...commonProps,
         left: drawingArea.value.left,
         top: drawingArea.value.top + drawingArea.value.height / 2,
-        width: drawingArea.value.width + 10,
+        width: drawingArea.value.width - 90,
         height: 10,
         id: 'bottomHandle',
         lockMovementX: true,
         hoverCursor: 'ns-resize',
     });
-
-    // Handlers dos cantos para redimensionamento diagonal
-    const topLeftHandle = new Rect({
-        ...commonProps,
-        left: drawingArea.value.left - drawingArea.value.width / 2,
-        top: drawingArea.value.top - drawingArea.value.height / 2,
-        width: 12,
-        height: 12,
+    
+    const topLeftHandle = new Path(`M 0 0 L ${cornerHandleSize} 0 L ${cornerHandleSize} ${cornerThickness} L ${cornerThickness} ${cornerThickness} L ${cornerThickness} ${cornerHandleSize} L 0 ${cornerHandleSize} Z`, {
+        left: drawingArea.value.left - drawingArea.value.width / 2 + cornerHandleSize / 2 - cornerThickness / 2,
+        top: drawingArea.value.top - drawingArea.value.height / 2 + cornerHandleSize / 2 - cornerThickness / 2,
+        fill: cornerHandlersColor,
+        stroke: 'transparent',
+        strokeWidth: 1,
+        originX: 'center',
+        originY: 'center',
+        hasControls: false,
+        hasBorders: false,
+        selectable: true,
+        class: 'resize-handle',
         id: 'topLeftHandle',
         hoverCursor: 'nw-resize',
     });
 
-    const topRightHandle = new Rect({
-        ...commonProps,
-        left: drawingArea.value.left + drawingArea.value.width / 2,
-        top: drawingArea.value.top - drawingArea.value.height / 2,
-        width: 12,
-        height: 12,
+    const topRightHandle = new Path(`M 0 0 L 0 ${cornerThickness} L ${cornerHandleSize - cornerThickness} ${cornerThickness} L ${cornerHandleSize - cornerThickness} ${cornerHandleSize} L ${cornerHandleSize} ${cornerHandleSize} L ${cornerHandleSize} 0 Z`, {
+        left: drawingArea.value.left + drawingArea.value.width / 2 - cornerHandleSize / 2 + cornerThickness / 2,
+        top: drawingArea.value.top - drawingArea.value.height / 2 + cornerHandleSize / 2 - cornerThickness / 2,
+        fill: cornerHandlersColor,
+        stroke: 'transparent',
+        strokeWidth: 1,
+        originX: 'center',
+        originY: 'center',
+        hasControls: false,
+        hasBorders: false,
+        selectable: true,
+        class: 'resize-handle',
         id: 'topRightHandle',
         hoverCursor: 'ne-resize',
     });
 
-    const bottomLeftHandle = new Rect({
-        ...commonProps,
-        left: drawingArea.value.left - drawingArea.value.width / 2,
-        top: drawingArea.value.top + drawingArea.value.height / 2,
-        width: 12,
-        height: 12,
+    const bottomLeftHandle = new Path(`M 0 0 L ${cornerThickness} 0 L ${cornerThickness} ${cornerHandleSize - cornerThickness} L ${cornerHandleSize} ${cornerHandleSize - cornerThickness} L ${cornerHandleSize} ${cornerHandleSize} L 0 ${cornerHandleSize} Z`, {
+        left: drawingArea.value.left - drawingArea.value.width / 2 + cornerHandleSize / 2 - cornerThickness / 2,
+        top: drawingArea.value.top + drawingArea.value.height / 2 - cornerHandleSize / 2 + cornerThickness / 2,
+        fill: cornerHandlersColor,
+        stroke: 'transparent',
+        strokeWidth: 1,
+        originX: 'center',
+        originY: 'center',
+        hasControls: false,
+        hasBorders: false,
+        selectable: true,
+        class: 'resize-handle',
         id: 'bottomLeftHandle',
         hoverCursor: 'sw-resize',
     });
 
-    const bottomRightHandle = new Rect({
-        ...commonProps,
-        left: drawingArea.value.left + drawingArea.value.width / 2,
-        top: drawingArea.value.top + drawingArea.value.height / 2,
-        width: 12,
-        height: 12,
+    const bottomRightHandle = new Path(`M 0 ${cornerHandleSize - cornerThickness} L 0 ${cornerHandleSize} L ${cornerHandleSize} ${cornerHandleSize} L ${cornerHandleSize} 0 L ${cornerHandleSize - cornerThickness} 0 L ${cornerHandleSize - cornerThickness} ${cornerHandleSize - cornerThickness} Z`, {
+        left: drawingArea.value.left + drawingArea.value.width / 2 - cornerHandleSize / 2 + cornerThickness / 2,
+        top: drawingArea.value.top + drawingArea.value.height / 2 - cornerHandleSize / 2 + cornerThickness / 2,
+        fill: cornerHandlersColor,
+        stroke: 'transparent',
+        strokeWidth: 1,
+        originX: 'center',
+        originY: 'center',
+        hasControls: false,
+        hasBorders: false,
+        selectable: true,
+        class: 'resize-handle',
         id: 'bottomRightHandle',
         hoverCursor: 'se-resize',
     });
@@ -1407,8 +1450,11 @@ function setupFabricEvents() {
     fabricCanvas.on('mouse:over', function (opt) {
         const target = opt.target;
         if (target?.class === 'resize-handle') {
-            // change object's fill color on hover
-            target.set('fill', handlersColorOver);
+            if (['topLeftHandle', 'topRightHandle', 'bottomLeftHandle', 'bottomRightHandle'].includes(target.id)) {
+                target.set('fill', cornerHandlersColorOver);
+            } else {
+                target.set('fill', handlersColorOver);
+            }
             fabricCanvas.bringObjectToFront(target);
             fabricCanvas.requestRenderAll();
         }
@@ -1418,7 +1464,11 @@ function setupFabricEvents() {
         const target = opt.target;
         if (target?.class === 'resize-handle') {
             // revert object's fill color when not hovering
-            target.set('fill', handlersColor);
+            if (['topLeftHandle', 'topRightHandle', 'bottomLeftHandle', 'bottomRightHandle'].includes(target.id)) {
+                target.set('fill', cornerHandlersColor);
+            } else {
+                target.set('fill', handlersColor);
+            }
             fabricCanvas.requestRenderAll();
         }
     });
@@ -1438,104 +1488,165 @@ function setupFabricEvents() {
     // Adiciona listener para manter as imagens centralizadas quando movidas
     fabricCanvas.on('object:moving', function(e) {
         const obj = e.target;
+        const objects = fabricCanvas.getObjects();
+        
         if (obj === firstImage.value || obj === secondImage.value) {
             // Marca que a imagem foi movida manualmente; não recentraliza automaticamente
             obj.isManuallyMoved = true;
         }
 
         if (obj.class === 'resize-handle') {
+
+            const topLeftHandle = objects.find(o => o.id === 'topLeftHandle');
+            const topRightHandle = objects.find(o => o.id === 'topRightHandle');
+            const bottomLeftHandle = objects.find(o => o.id === 'bottomLeftHandle');
+            const bottomRightHandle = objects.find(o => o.id === 'bottomRightHandle');
+            const drawingAreaObj = objects.find(o => o.id === 'drawingArea');
+
             if (obj.id === 'leftHandle' || obj.id === 'rightHandle') {
-                const drawingAreaObj = fabricCanvas.getObjects().find(o => o.id === 'drawingArea');
                 if (drawingAreaObj) {
                     const newWidth = (Math.abs(obj.left - drawingAreaObj.left) * 2);
                     drawingAreaWidth.value = Math.round(newWidth);
                 }
 
                 if(obj.id === 'leftHandle') {
-                    const rightHandle = fabricCanvas.getObjects().find(o => o.id === 'rightHandle');
-                    // adjust right handle position
+                    const rightHandle = objects.find(o => o.id === 'rightHandle');
+
+                    
                     if (rightHandle) {
                         rightHandle.set({ left: drawingAreaObj.left + (drawingAreaObj.width / 2) });
                         rightHandle.setCoords();
                     }
+                    
+                    topLeftHandle?.set({
+                        left: obj.left + topLeftHandle.width / 2 - cornerThickness / 2,
+                    });
+                    bottomLeftHandle?.set({
+                        left: obj.left + bottomLeftHandle.width / 2 - cornerThickness / 2,
+                    });
+                    topRightHandle?.set({
+                        left: drawingAreaObj.left + drawingAreaObj.width / 2 - topRightHandle.width / 2 + cornerThickness / 2,
+                    });
+                    bottomRightHandle?.set({
+                        left: drawingAreaObj.left + drawingAreaObj.width / 2 - bottomRightHandle.width / 2 + cornerThickness / 2,
+                    });
                 } else if (obj.id === 'rightHandle') {
-                    const leftHandle = fabricCanvas.getObjects().find(o => o.id === 'leftHandle');
+
+                    const leftHandle = objects.find(o => o.id === 'leftHandle');
                     // adjust left handle position
                     if (leftHandle) {
                         leftHandle.set({ left: drawingAreaObj.left - (drawingAreaObj.width / 2) });
                         leftHandle.setCoords();
                     }
+
+                    topRightHandle?.set({
+                        left: obj.left - topRightHandle.width / 2 + cornerThickness / 2,
+                    });
+                    bottomRightHandle?.set({
+                        left: obj.left - bottomRightHandle.width / 2 + cornerThickness / 2,
+                    });
+                    topLeftHandle?.set({
+                        left: drawingAreaObj.left - drawingAreaObj.width / 2 + topLeftHandle.width / 2 - cornerThickness / 2,
+                    });
+                    bottomLeftHandle?.set({
+                        left: drawingAreaObj.left - drawingAreaObj.width / 2 + bottomLeftHandle.width / 2 - cornerThickness / 2,
+                    });
                 }
 
                 // adjust top and bottom handles width
-                const topHandle = fabricCanvas.getObjects().find(o => o.id === 'topHandle');
-                const bottomHandle = fabricCanvas.getObjects().find(o => o.id === 'bottomHandle');
+                const topHandle = objects.find(o => o.id === 'topHandle');
+                const bottomHandle = objects.find(o => o.id === 'bottomHandle');
                 if (topHandle) {
-                    topHandle.set({ width: drawingAreaObj.width + 10 });
+                    topHandle.set({ width: drawingAreaObj.width - 90 });
                     topHandle.setCoords();
                 }
                 if (bottomHandle) {
-                    bottomHandle.set({ width: drawingAreaObj.width });
+                    bottomHandle.set({ width: drawingAreaObj.width - 90 });
                     bottomHandle.setCoords();
                 }
             }
 
             if (obj.id === 'topHandle' || obj.id === 'bottomHandle') {
-                const drawingAreaObj = fabricCanvas.getObjects().find(o => o.id === 'drawingArea');
+                
                 if (drawingAreaObj) {
                     const newHeight = Math.abs(obj.top - drawingAreaObj.top) * 2;
                     drawingAreaHeight.value = Math.round(newHeight);
                 }
 
                 if(obj.id === 'topHandle') {
-                    const bottomHandle = fabricCanvas.getObjects().find(o => o.id === 'bottomHandle');
+                    const bottomHandle = objects.find(o => o.id === 'bottomHandle');
                     // adjust bottom handle position
                     if (bottomHandle) {
                         bottomHandle.set({ top: drawingAreaObj.top + (drawingAreaObj.height / 2) });
                         bottomHandle.setCoords();
                     }
+
+                    topLeftHandle?.set({
+                        top: obj.top + topLeftHandle.height / 2 - cornerThickness / 2,
+                    });
+                    topRightHandle?.set({
+                        top: obj.top + topRightHandle.height / 2 - cornerThickness / 2,
+                    });
+                    bottomLeftHandle?.set({
+                        top: drawingAreaObj.top + drawingAreaObj.height / 2 - bottomLeftHandle.height / 2 + cornerThickness / 2,
+                    });
+                    bottomRightHandle?.set({
+                        top: drawingAreaObj.top + drawingAreaObj.height / 2 - bottomRightHandle.height / 2 + cornerThickness / 2,
+                    });
                 } else if (obj.id === 'bottomHandle') {
-                    const topHandle = fabricCanvas.getObjects().find(o => o.id === 'topHandle');
+                    const topHandle = objects.find(o => o.id === 'topHandle');
                     // adjust top handle position
                     if (topHandle) {
                         topHandle.set({ top: drawingAreaObj.top - (drawingAreaObj.height / 2) });
                         topHandle.setCoords();
                     }
+                    bottomLeftHandle?.set({
+                        top: obj.top - bottomLeftHandle.height / 2 + cornerThickness / 2,
+                    });
+                    bottomRightHandle?.set({
+                        top: obj.top - bottomRightHandle.height / 2 + cornerThickness / 2,
+                    });
+                    topLeftHandle?.set({
+                        top: drawingAreaObj.top - drawingAreaObj.height / 2 + topLeftHandle.height / 2 - cornerThickness / 2,
+                    });
+                    topRightHandle?.set({
+                        top: drawingAreaObj.top - drawingAreaObj.height / 2 + topRightHandle.height / 2 - cornerThickness / 2,
+                    });
                 }
 
                 // adjust left and right handles height
-                const leftHandle = fabricCanvas.getObjects().find(o => o.id === 'leftHandle');
-                const rightHandle = fabricCanvas.getObjects().find(o => o.id === 'rightHandle');
+                const leftHandle = objects.find(o => o.id === 'leftHandle');
+                const rightHandle = objects.find(o => o.id === 'rightHandle');
                 if (leftHandle) {
-                    leftHandle.set({ height: drawingAreaObj.height + 10 });
+                    leftHandle.set({ height: drawingAreaObj.height - 90 });
                     leftHandle.setCoords();
                 }
                 if (rightHandle) {
-                    rightHandle.set({ height: drawingAreaObj.height + 10 });
+                    rightHandle.set({ height: drawingAreaObj.height - 90 });
                     rightHandle.setCoords();
                 }
             }
 
             // Handlers dos cantos para redimensionamento diagonal
             if (obj.id === 'topLeftHandle' || obj.id === 'topRightHandle' || 
-                obj.id === 'bottomLeftHandle' || obj.id === 'bottomRightHandle') {
+                obj.id === 'bottomLeftHandle' || obj.id === 'bottomRightHandle'
+            ) {
                 
-                const drawingAreaObj = fabricCanvas.getObjects().find(o => o.id === 'drawingArea');
                 if (drawingAreaObj) {
                     let newWidth, newHeight;
                     
                     if (obj.id === 'topLeftHandle') {
-                        newWidth = Math.abs(drawingAreaObj.left - obj.left) * 2;
-                        newHeight = Math.abs(drawingAreaObj.top - obj.top) * 2;
+                        newWidth = Math.abs(drawingAreaObj.left - obj.left + obj.width / 2 - cornerThickness / 2) * 2;
+                        newHeight = Math.abs(drawingAreaObj.top - obj.top + obj.height / 2 - cornerThickness / 2) * 2;
                     } else if (obj.id === 'topRightHandle') {
-                        newWidth = Math.abs(obj.left - drawingAreaObj.left) * 2;
-                        newHeight = Math.abs(drawingAreaObj.top - obj.top) * 2;
+                        newWidth = Math.abs(obj.left - drawingAreaObj.left + obj.width / 2 - cornerThickness / 2) * 2;
+                        newHeight = Math.abs(drawingAreaObj.top - obj.top + obj.height / 2 - cornerThickness / 2) * 2;
                     } else if (obj.id === 'bottomLeftHandle') {
-                        newWidth = Math.abs(drawingAreaObj.left - obj.left) * 2;
-                        newHeight = Math.abs(obj.top - drawingAreaObj.top) * 2;
+                        newWidth = Math.abs(drawingAreaObj.left - obj.left + obj.width / 2 - cornerThickness / 2) * 2;
+                        newHeight = Math.abs(obj.top - drawingAreaObj.top + obj.height / 2 - cornerThickness / 2) * 2;
                     } else if (obj.id === 'bottomRightHandle') {
-                        newWidth = Math.abs(obj.left - drawingAreaObj.left) * 2;
-                        newHeight = Math.abs(obj.top - drawingAreaObj.top) * 2;
+                        newWidth = Math.abs(obj.left - drawingAreaObj.left + obj.width / 2 - cornerThickness / 2) * 2;
+                        newHeight = Math.abs(obj.top - drawingAreaObj.top + obj.height / 2 - cornerThickness / 2) * 2;
                     }
                     
                     drawingAreaWidth.value = Math.round(newWidth);
@@ -1543,68 +1654,68 @@ function setupFabricEvents() {
                     
                     // Atualiza posições de todos os outros handlers
                     const handles = {
-                        left: fabricCanvas.getObjects().find(o => o.id === 'leftHandle'),
-                        right: fabricCanvas.getObjects().find(o => o.id === 'rightHandle'),
-                        top: fabricCanvas.getObjects().find(o => o.id === 'topHandle'),
-                        bottom: fabricCanvas.getObjects().find(o => o.id === 'bottomHandle'),
-                        topLeft: fabricCanvas.getObjects().find(o => o.id === 'topLeftHandle'),
-                        topRight: fabricCanvas.getObjects().find(o => o.id === 'topRightHandle'),
-                        bottomLeft: fabricCanvas.getObjects().find(o => o.id === 'bottomLeftHandle'),
-                        bottomRight: fabricCanvas.getObjects().find(o => o.id === 'bottomRightHandle')
+                        left: objects.find(o => o.id === 'leftHandle'),
+                        right: objects.find(o => o.id === 'rightHandle'),
+                        top: objects.find(o => o.id === 'topHandle'),
+                        bottom: objects.find(o => o.id === 'bottomHandle'),
+                        topLeft: objects.find(o => o.id === 'topLeftHandle'),
+                        topRight: objects.find(o => o.id === 'topRightHandle'),
+                        bottomLeft: objects.find(o => o.id === 'bottomLeftHandle'),
+                        bottomRight: objects.find(o => o.id === 'bottomRightHandle')
                     };
                     
                     // Atualiza handlers laterais
                     if (handles.left) {
                         handles.left.set({ 
                             left: drawingAreaObj.left - drawingAreaObj.width / 2,
-                            height: drawingAreaObj.height + 10 
+                            height: drawingAreaObj.height - 90
                         });
                         handles.left.setCoords();
                     }
                     if (handles.right) {
                         handles.right.set({ 
                             left: drawingAreaObj.left + drawingAreaObj.width / 2,
-                            height: drawingAreaObj.height + 10 
+                            height: drawingAreaObj.height - 90
                         });
                         handles.right.setCoords();
                     }
                     if (handles.top) {
                         handles.top.set({ 
                             top: drawingAreaObj.top - drawingAreaObj.height / 2,
-                            width: drawingAreaObj.width + 10 
+                            width: drawingAreaObj.width - 90
                         });
                         handles.top.setCoords();
                     }
                     if (handles.bottom) {
                         handles.bottom.set({ 
                             top: drawingAreaObj.top + drawingAreaObj.height / 2,
-                            width: drawingAreaObj.width + 10 
+                            width: drawingAreaObj.width - 90
                         });
                         handles.bottom.setCoords();
                     }
                     
                     // Atualiza outros handlers dos cantos
                     Object.entries(handles).forEach(([key, handle]) => {
-                        if (handle && handle !== obj && key.includes('Handle')) {
+                        if (handle && handle !== obj) {
                             if (key === 'topLeft') {
                                 handle.set({
-                                    left: drawingAreaObj.left - drawingAreaObj.width / 2,
-                                    top: drawingAreaObj.top - drawingAreaObj.height / 2
+                                    left: drawingAreaObj.left - drawingAreaObj.width / 2 + cornerHandleSize / 2 - cornerThickness / 2,
+                                    top: drawingAreaObj.top - drawingAreaObj.height / 2 + cornerHandleSize / 2 - cornerThickness / 2
                                 });
                             } else if (key === 'topRight') {
                                 handle.set({
-                                    left: drawingAreaObj.left + drawingAreaObj.width / 2,
-                                    top: drawingAreaObj.top - drawingAreaObj.height / 2
+                                    left: drawingAreaObj.left + drawingAreaObj.width / 2 - cornerHandleSize / 2 + cornerThickness / 2,
+                                    top: drawingAreaObj.top - drawingAreaObj.height / 2 + cornerHandleSize / 2 - cornerThickness / 2
                                 });
                             } else if (key === 'bottomLeft') {
                                 handle.set({
-                                    left: drawingAreaObj.left - drawingAreaObj.width / 2,
-                                    top: drawingAreaObj.top + drawingAreaObj.height / 2
+                                    left: drawingAreaObj.left - drawingAreaObj.width / 2 + cornerHandleSize / 2 - cornerThickness / 2,
+                                    top: drawingAreaObj.top + drawingAreaObj.height / 2 - cornerHandleSize / 2 + cornerThickness / 2
                                 });
                             } else if (key === 'bottomRight') {
                                 handle.set({
-                                    left: drawingAreaObj.left + drawingAreaObj.width / 2,
-                                    top: drawingAreaObj.top + drawingAreaObj.height / 2
+                                    left: drawingAreaObj.left + drawingAreaObj.width / 2 - cornerHandleSize / 2 + cornerThickness / 2,
+                                    top: drawingAreaObj.top + drawingAreaObj.height / 2 - cornerHandleSize / 2 + cornerThickness / 2
                                 });
                             }
                             handle.setCoords();
@@ -1612,6 +1723,11 @@ function setupFabricEvents() {
                     });
                 }
             }
+
+            topLeftHandle.setCoords();
+            topRightHandle.setCoords();
+            bottomLeftHandle.setCoords();
+            bottomRightHandle.setCoords();
         }
     });
 }
@@ -1740,15 +1856,22 @@ async function loadImages() {
         imgLeft.scale(scale);
         imgRight.scale(scale);
 
-    // set id for images e flags iniciais
-    imgLeft.set({ id: 'leftImage', isManuallyMoved: false });
-    imgRight.set({ id: 'rightImage', isManuallyMoved: false });
+        // set id for images e flags iniciais
+        imgLeft.set({
+            id: 'leftImage',
+            isManuallyMoved: false,
+        });
+        
+        imgRight.set({
+            id: 'rightImage',
+            isManuallyMoved: false,
+        });
 
         // Calcula as dimensões finais do canvas
         const canvasWidth = Math.min(totalImageWidth * scale, containerWidth);
         const canvasHeight = Math.min(maxImageHeight * scale, containerHeight);
-    // const left = (containerWidth - canvasWidth) / 2;
-    // const top = (containerHeight - canvasHeight) / 2;
+        // const left = (containerWidth - canvasWidth) / 2;
+        // const top = (containerHeight - canvasHeight) / 2;
 
         // Define o tamanho do canvas
         fabricCanvas.setDimensions({
@@ -1767,6 +1890,8 @@ async function loadImages() {
             evented: true, 
             selectable: true, 
             centeredScaling: true,
+            lockRotation: true,
+            lockScalingFlip: true,
         }));
         fabricCanvas.add(imgRight.set({ 
             left: imgLeft.width * scale, 
@@ -1774,7 +1899,16 @@ async function loadImages() {
             evented: true, 
             selectable: true, 
             centeredScaling: true,
+            lockRotation: true,
+            lockScalingFlip: true,
         }));
+
+        imgLeft.setControlsVisibility({
+            mtr: false
+        });
+        imgRight.setControlsVisibility({
+            mtr: false
+        });
 
         applyControlStyles(imgLeft, imgRight);
 

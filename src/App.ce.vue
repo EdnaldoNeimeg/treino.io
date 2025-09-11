@@ -943,8 +943,8 @@ function setupCanvasStateListeners() {
             }
         },
         'selection:updated': (e) => {
+            const objectsToIgnore = e.selected.filter(o => o.id === 'drawingArea' || o.class === 'resize-handle');
             if (e.selected.length > 1) {
-                const objectsToIgnore = e.selected.filter(o => o.id === 'drawingArea' || o.class === 'resize-handle');
 
                 const selection = fabricCanvas.getActiveObject();
 
@@ -960,7 +960,16 @@ function setupCanvasStateListeners() {
                     //     manageSelection(null);
                     // }
                 }
+            } else {
+                if( e.selected[0].id === 'drawingArea' || e.selected[0].class === 'resize-handle' ) {
+                    fabricCanvas.discardActiveObject();
+                    manageSelection(null);
+                } else {
+                    manageSelection(e.selected[0]);
+                }
             }
+
+            
             applyControlStyles(fabricCanvas.getActiveObject());
         },
         'selection:cleared': () => {
@@ -1676,6 +1685,7 @@ function updateBrushWidth() {
 // Aplica estilos personalizados aos controles de transformação dos objetos
 function applyControlStyles(...objects) {
     objects.forEach(obj => {
+        if (!obj) return;
         obj.set({
             borderColor: '#F95E16',
             cornerColor: '#F97316',

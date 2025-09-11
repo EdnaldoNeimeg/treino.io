@@ -135,6 +135,29 @@
                                 </span>
                             </button>
                         </div>
+                        <div class="h-6 border-r border-slate-300"></div>
+                        <div class="flex items-center gap-2">
+                            <button
+                                class="group h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-gradient-to-br hover:from-[#07BEF8] hover:to-[#98DC47] rounded transition-colors"
+                            >
+                                <!-- add svg gradient ring -->
+                                <svg class="w-5 h-5" viewBox="0 0 32 32">
+                                    <defs>
+                                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop
+                                                offset="0%"
+                                                style="stop-color: #07BEF8; stop-opacity: 1"
+                                                :style="{
+
+                                                }"
+                                            />
+                                            <stop offset="100%" style="stop-color: #98DC47; stop-opacity: 1" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="16" cy="16" r="13" stroke="url(#gradient)" stroke-width="5" fill="none" class="group-hover:stroke-white transition-colors" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -396,7 +419,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, IText } from 'fabric'
+import { Canvas, FabricImage, FabricObject, Rect, PencilBrush, classRegistry, Path, IText } from 'fabric'
 
 import ColorSelector from '@/components/ColorSelector.vue';
 
@@ -1078,6 +1101,7 @@ function setupCanvasStateListeners() {
             saveCanvasState();
         },
         'selection:created': (e) => {
+            
             // console.log(e);
             if (e.selected.length > 1) {
                 const objectsToIgnore = e.selected.filter(o => o.id === 'drawingArea' || o.class === 'resize-handle');
@@ -1106,6 +1130,9 @@ function setupCanvasStateListeners() {
             }
         },
         'selection:updated': (e) => {
+            // Limpa estados de hover quando a seleção é atualizada
+            clearAllHoverStates();
+            
             const objectsToIgnore = e.selected.filter(o => o.id === 'drawingArea' || o.class === 'resize-handle');
             const activeSelection = fabricCanvas.getActiveObject();
             if (activeSelection?._objects?.length > 1) {
@@ -1582,6 +1609,21 @@ function createText(x, y) {
     saveCanvasState();
 }
 
+/**
+ * Verifica se um objeto é selecionável e deve mostrar hover
+ */
+function isSelectableObject(obj) {
+    // Exclui objetos essenciais do sistema, including clipPaths and handlers
+    const excludedIds = ['drawingArea', 'watermark','firstClipPath'];
+    const excludedClasses = ['resize-handle'];
+    
+    return obj && 
+           obj.selectable && 
+           !excludedIds.includes(obj.id) && 
+           !excludedClasses.includes(obj.class);
+}
+
+
 function setupFabricEvents() {
     if (!fabricCanvas) return;
 
@@ -1716,6 +1758,8 @@ function setupFabricEvents() {
 
     fabricCanvas.on('mouse:over', function (opt) {
         const target = opt.target;
+        
+        // Lógica para resize handles
         if (target?.class === 'resize-handle') {
             if (['topLeftHandle', 'topRightHandle', 'bottomLeftHandle', 'bottomRightHandle'].includes(target.id)) {
                 target.set('fill', cornerHandlersColorOver);
@@ -1724,11 +1768,40 @@ function setupFabricEvents() {
             }
             fabricCanvas.bringObjectToFront(target);
             fabricCanvas.requestRenderAll();
+            return;
+        }
+        
+        // Lógica para objetos selecionáveis (hover highlight)
+        if (target && isSelectableObject(target)) {
+            // Só aplica hover se o objeto não estiver já selecionado
+            const activeObject = fabricCanvas.getActiveObject();
+            const isCurrentlySelected = activeObject === target || 
+                (activeObject?.type === 'activeSelection' && activeObject.contains(target));
+            
+            if (!isCurrentlySelected) {
+                // skip group hover
+                if (target instanceof FabricObject && !(target instanceof Array)) {
+                    console.log(fabricCanvas.viewportTransform);
+
+                    const bound = target.getBoundingRect();
+                    const ctx = fabricCanvas.getContext();
+                    const zoom = fabricCanvas.getZoom();
+                    ctx.strokeStyle = 'red';
+                    ctx.strokeRect(
+                        target.left,
+                        target.top,
+                        target.getScaledWidth() * zoom,
+                        target.getScaledHeight() * zoom
+                    );
+                }
+            }
         }
     });
 
     fabricCanvas.on('mouse:out', function (opt) {
         const target = opt.target;
+        
+        // Lógica para resize handles
         if (target?.class === 'resize-handle') {
             // revert object's fill color when not hovering
             if (['topLeftHandle', 'topRightHandle', 'bottomLeftHandle', 'bottomRightHandle'].includes(target.id)) {
@@ -1737,6 +1810,19 @@ function setupFabricEvents() {
                 target.set('fill', handlersColor);
             }
             fabricCanvas.requestRenderAll();
+            return;
+        }
+        
+        // Lógica para objetos selecionáveis (remover hover highlight)
+        if (target && isSelectableObject(target)) {
+            // if (fabricCanvas.getActiveObjects().length) {
+            //     return;
+            // }
+
+            // skipp group hover
+            if (target instanceof FabricObject && !(target instanceof Array)) {
+                fabricCanvas.renderAll(); // render all, will clear bounds box drawed by mouse:over
+            }
         }
     });
 

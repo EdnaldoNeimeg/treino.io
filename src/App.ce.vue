@@ -924,7 +924,7 @@ function setupCanvasStateListeners() {
 
                 applyControlStyles(selection);
 
-                if (selection && selection.type === 'activeselection') {
+                if (selection && selection.type.toLowerCase() === 'activeselection') {
                     objectsToIgnore.forEach(obj => {
                         selection.remove(obj);
                     });
@@ -948,9 +948,7 @@ function setupCanvasStateListeners() {
 
                 const selection = fabricCanvas.getActiveObject();
 
-                applyControlStyles(selection);
-
-                if (selection && selection.type === 'activeselection') {
+                if (selection && selection.type.toLowerCase() === 'activeselection') {
                     objectsToIgnore.forEach(obj => {
                         selection.remove(obj);
                     });
@@ -961,11 +959,9 @@ function setupCanvasStateListeners() {
                     //     fabricCanvas.discardActiveObject();
                     //     manageSelection(null);
                     // }
-                    fabricCanvas.requestRenderAll();
                 }
-            } else {
-                manageSelection(e.selected[0]);
             }
+            applyControlStyles(fabricCanvas.getActiveObject());
         },
         'selection:cleared': () => {
             manageSelection(null);

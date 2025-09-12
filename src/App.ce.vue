@@ -141,7 +141,7 @@
                                 class="group h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-gradient-to-br hover:from-[#07BEF8] hover:to-[#98DC47] rounded transition-colors"
                             >
                                 <!-- add svg gradient ring -->
-                                <svg class="w-5 h-5" viewBox="0 0 32 32">
+                                <svg class="w-5 h-5 animate-spin" viewBox="0 0 32 32">
                                     <defs>
                                         <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                             <stop
@@ -362,7 +362,6 @@
                         <option value="Times New Roman">Times New Roman</option>
                         <option value="Helvetica">Helvetica</option>
                         <option value="Georgia">Georgia</option>
-                        <option value="Verdana">Verdana</option>
                         <option value="Courier New">Courier New</option>
                     </select>
                 </div>
@@ -419,7 +418,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { Canvas, FabricImage, FabricObject, Rect, PencilBrush, classRegistry, Path, IText } from 'fabric'
+import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, IText, util } from 'fabric'
 
 import ColorSelector from '@/components/ColorSelector.vue';
 
@@ -450,6 +449,8 @@ const props = defineProps({
 });
 
 const ready = ref(false);
+
+const brandColor = '#F95E16'; // Cor da marca (laranja)
 
 // Variáveis para zoom suave com mouse wheel (removidas se não usadas)
 
@@ -488,6 +489,8 @@ const objectUniformScale = ref(true); // Escala uniforme (X e Y juntos)
 const objectOpacity = ref(1);
 
 const watchObjectScale = ref(true);
+
+const mouseOverFakeObject = ref(false);
 
 // Variáveis para o histórico de ações (Undo/Redo)
 const undoStack = ref([]);
@@ -1097,10 +1100,14 @@ function setupCanvasStateListeners() {
                     const uid = `path-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
                     path.set({ id: uid });
                 }
+
+                applyStyleToControls(path);
             }
             saveCanvasState();
         },
         'selection:created': (e) => {
+            // Limpa estados de hover quando algo é selecionado
+            clearAllHoverStates();
             
             // console.log(e);
             if (e.selected.length > 1) {
@@ -1108,7 +1115,7 @@ function setupCanvasStateListeners() {
 
                 const selection = fabricCanvas.getActiveObject();
 
-                applyControlStyles(selection);
+                applyStyleToControls(selection);
 
                 if (selection && selection.type.toLowerCase() === 'activeselection') {
                     objectsToIgnore.forEach(obj => {
@@ -1126,7 +1133,6 @@ function setupCanvasStateListeners() {
 
             } else {
                 manageSelection(e.selected[0]);
-                applyControlStyles(e.selected[0]);
             }
         },
         'selection:updated': (e) => {
@@ -1151,16 +1157,16 @@ function setupCanvasStateListeners() {
                     }
                 }
 
-                applyControlStyles(activeSelection);
+                applyStyleToControls(activeSelection);
                 
             } else {
                 manageSelection(e.selected[0]);
                 
                 if(activeSelection?._objects?.length > 1) {
-                    applyControlStyles(activeSelection);
+                    applyStyleToControls(activeSelection);
                 } else {
                     if(activeSelection.id !== 'drawingArea' && activeSelection.class !== 'resize-handle') {
-                        applyControlStyles(activeSelection);
+                        applyStyleToControls(activeSelection);
                     }
                 }
             }
@@ -1613,8 +1619,8 @@ function createText(x, y) {
  * Verifica se um objeto é selecionável e deve mostrar hover
  */
 function isSelectableObject(obj) {
-    // Exclui objetos essenciais do sistema, including clipPaths and handlers
-    const excludedIds = ['drawingArea', 'watermark','firstClipPath'];
+    // Exclui objetos essenciais do sistema
+    const excludedIds = ['drawingArea', 'watermark'];
     const excludedClasses = ['resize-handle'];
     
     return obj && 
@@ -1623,6 +1629,110 @@ function isSelectableObject(obj) {
            !excludedClasses.includes(obj.class);
 }
 
+async function setHoverState(target) {
+    // Lógica para objetos selecionáveis (hover highlight)
+    if (target && isSelectableObject(target)) {
+        // Só aplica hover se o objeto não estiver já selecionado
+        const activeObject = fabricCanvas.getActiveObject();
+        const isCurrentlySelected = activeObject === target || 
+            (activeObject?.type === 'activeSelection' && activeObject.contains(target));
+        
+        if (!isCurrentlySelected) {
+            // // Salva o estado original das bordas se ainda não foi salvo
+            // if (!target._originalBorderState) {
+            //     target._originalBorderState = {
+            //         borderColor: target.borderColor,
+            //         hasBorders: target.hasBorders,
+            //         borderWidth: target.borderWidth
+            //     };
+            // }
+            
+            // // Aplica o estilo de hover
+            // target.set({
+            //     borderColor: '#007ACC', // Cor azul para hover
+            //     hasBorders: true,
+            //     borderWidth: 2,
+            // });
+
+            let clone = await target.clone();
+
+            const type = clone.type;
+
+            clone.set({
+                selectable: false,
+                evented: false,
+                hoverCursor: 'default',
+                id: `${target.id}-hover`,
+                stroke: brandColor,
+                strokeWidth: 4,
+                fill: target.fill || 'transparent',
+                paintFirst: 'stroke',
+            });
+
+            if (type === 'path') {
+                clone.set({
+                    left: clone.left - clone.strokeWidth / 2,
+                    top: clone.top - clone.strokeWidth / 2,
+                });
+            }
+
+            if (type === 'i-text' || type === 'textbox') {
+                // Textboxes e IText precisam de ajuste especial
+                clone.set({
+                    left: clone.left - clone.strokeWidth / 2,
+                    top: clone.top - clone.strokeWidth / 2,
+                });
+            }
+
+            if (type === 'image') {
+                // create a rectangle with the same dimensions as the image
+                const rect = new Rect({
+                    left: clone.left - clone.strokeWidth,
+                    top: clone.top - clone.strokeWidth,
+                    width: clone.getScaledWidth(),
+                    height: clone.getScaledHeight(),
+                    fill: 'transparent',
+                    selectable: false,
+                    evented: false,
+                    hoverCursor: 'default',
+                    id: `${target.id}-hover`,
+                    angle: clone.angle,
+                    stroke: clone.stroke,
+                    strokeWidth: clone.strokeWidth,
+                    strokeColor: clone.strokeColor,
+                    paintFirst: 'stroke',
+                });
+
+                clone = rect;
+            }
+
+            fabricCanvas.add(clone);
+            fabricCanvas.bringObjectToFront(clone);
+
+            fabricCanvas.requestRenderAll();
+        }
+    }
+}
+
+/**
+ * Remove estados de hover de todos os objetos
+ */
+function clearAllHoverStates() {
+    fabricCanvas.getObjects().forEach(obj => {
+        // if obj.id includes '-hover', remove it
+        if (obj.id && obj.id.includes('-hover')) {
+            fabricCanvas.remove(obj);
+        } else if (obj.class === 'resize-handle') {
+            // Reseta a cor dos handlers de resize
+            if (['topLeftHandle', 'topRightHandle', 'bottomLeftHandle', 'bottomRightHandle'].includes(obj.id)) {
+                obj.set('fill', cornerHandlersColor);
+            } else {
+                obj.set('fill', handlersColor);
+            }
+        }
+    });
+    fabricCanvas.requestRenderAll();
+}
 
 function setupFabricEvents() {
     if (!fabricCanvas) return;
@@ -1701,6 +1811,9 @@ function setupFabricEvents() {
 
     fabricCanvas.on('mouse:down', function (opt) {
         const evt = opt.e;
+
+        // remove all hover states
+        clearAllHoverStates();
         
         // Funcionalidade de texto - criar texto no clique
         if (activeTool.value === 'text') {
@@ -1756,7 +1869,7 @@ function setupFabricEvents() {
         }
     });
 
-    fabricCanvas.on('mouse:over', function (opt) {
+    fabricCanvas.on('mouse:over', async function (opt) {
         const target = opt.target;
         
         // Lógica para resize handles
@@ -1771,31 +1884,7 @@ function setupFabricEvents() {
             return;
         }
         
-        // Lógica para objetos selecionáveis (hover highlight)
-        if (target && isSelectableObject(target)) {
-            // Só aplica hover se o objeto não estiver já selecionado
-            const activeObject = fabricCanvas.getActiveObject();
-            const isCurrentlySelected = activeObject === target || 
-                (activeObject?.type === 'activeSelection' && activeObject.contains(target));
-            
-            if (!isCurrentlySelected) {
-                // skip group hover
-                if (target instanceof FabricObject && !(target instanceof Array)) {
-                    console.log(fabricCanvas.viewportTransform);
-
-                    const bound = target.getBoundingRect();
-                    const ctx = fabricCanvas.getContext();
-                    const zoom = fabricCanvas.getZoom();
-                    ctx.strokeStyle = 'red';
-                    ctx.strokeRect(
-                        target.left,
-                        target.top,
-                        target.getScaledWidth() * zoom,
-                        target.getScaledHeight() * zoom
-                    );
-                }
-            }
-        }
+        setHoverState(target);
     });
 
     fabricCanvas.on('mouse:out', function (opt) {
@@ -1815,14 +1904,25 @@ function setupFabricEvents() {
         
         // Lógica para objetos selecionáveis (remover hover highlight)
         if (target && isSelectableObject(target)) {
-            // if (fabricCanvas.getActiveObjects().length) {
-            //     return;
-            // }
+            
+            // if (!isCurrentlySelected) {
+            //     Restaura o estado original das bordas
+            //     target.set({
+            //         borderColor: target._originalBorderState.borderColor,
+            //         hasBorders: target._originalBorderState.hasBorders,
+            //         borderWidth: target._originalBorderState.borderWidth
+            //     });
+                
+            //     // Remove o estado salvo
+            //     delete target._originalBorderState;
 
-            // skipp group hover
-            if (target instanceof FabricObject && !(target instanceof Array)) {
-                fabricCanvas.renderAll(); // render all, will clear bounds box drawed by mouse:over
+            // }
+            const hoverClone = fabricCanvas.getObjects().find(o => o.id === `${target.id}-hover`);
+            if (hoverClone) {
+                fabricCanvas.remove(hoverClone);
             }
+    
+            fabricCanvas.requestRenderAll();
         }
     });
 
@@ -2245,6 +2345,7 @@ async function loadImages() {
             centeredScaling: true,
             lockRotation: true,
             lockScalingFlip: true,
+            strokeUniform: true,
         }));
         fabricCanvas.add(imgRight.set({ 
             left: imgLeft.width * scale, 
@@ -2254,6 +2355,7 @@ async function loadImages() {
             centeredScaling: true,
             lockRotation: true,
             lockScalingFlip: true,
+            strokeUniform: true,
         }));
 
         imgLeft.setControlsVisibility({
@@ -2263,7 +2365,7 @@ async function loadImages() {
             mtr: false
         });
 
-        applyControlStyles(imgLeft, imgRight);
+        applyStyleToControls(imgLeft, imgRight);
 
         // set images
         firstImage.value = imgLeft;
@@ -2306,12 +2408,12 @@ function updateBrushWidth() {
 }
 
 // Aplica estilos personalizados aos controles de transformação dos objetos
-function applyControlStyles(...objects) {
+function applyStyleToControls(...objects) {
     objects.forEach(obj => {
         if (!obj) return;
         obj.set({
-            borderColor: '#F95E16',
-            cornerColor: '#F97316',
+            borderColor: brandColor,
+            cornerColor: brandColor,
             cornerStyle: 'circle',
             cornerSize: 10,
             transparentCorners: false,

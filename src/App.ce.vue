@@ -2,7 +2,7 @@
     <div class="relative flex flex-col items-center justify-center h-full overflow-hidden">
         <div class="w-full absolute z-20 top-2 left-1/2 -translate-x-1/2 flex items-center justify-between px-2">
             <div class="">
-
+              {{ activeTool }}
             </div>
             <div class="grow flex items-center justify-center gap-4">
                 <div class="flex items-center justify-center gap-2">
@@ -98,13 +98,22 @@
                                     <small>4</small>
                                 </span>
                             </button>
+                            <button @click="setActiveTool('triangle')"
+                                class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
+                                :class="{ 'bg-primary-500! text-white': activeTool === 'triangle' }"
+                            >
+                                <iconify-icon icon="mdi:triangle-outline" class="text-sm inline-block"></iconify-icon>
+                                <span class="text-xs absolute bottom-0.5 right-1">
+                                    <small>5</small>
+                                </span>
+                            </button>
                             <button @click="setActiveTool('line')"
                                 class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
                                 :class="{ 'bg-primary-500! text-white': activeTool === 'line' }"
                             >
                                 <iconify-icon icon="garden:dash-stroke-16" class="inline-block -rotate-45"></iconify-icon>
                                 <span class="text-sm absolute bottom-0.5 right-1">
-                                    <small>5</small>
+                                    <small>6</small>
                                 </span>
                             </button>
                             <button @click="setActiveTool('arrow')"
@@ -113,7 +122,7 @@
                             >
                                 <iconify-icon icon="material-symbols-light:line-start-arrow-notch-rounded" class="text-lg inline-block -rotate-45"></iconify-icon>
                                 <span class="text-sm absolute bottom-0.5 right-1">
-                                    <small>6</small>
+                                    <small>7</small>
                                 </span>
                             </button>
                             <button @click="setActiveTool('text')"
@@ -122,7 +131,7 @@
                             >
                                 <iconify-icon icon="iconoir:text" class="text-base inline-block"></iconify-icon>
                                 <span class="text-sm absolute bottom-0.5 right-1">
-                                    <small>7</small>
+                                    <small>8</small>
                                 </span>
                             </button>
                             <button @click="setActiveTool('eraser')"
@@ -131,7 +140,7 @@
                             >
                                 <iconify-icon icon="lineicons:eraser" class="text-sm inline-block"></iconify-icon>
                                 <span class="text-xs absolute bottom-0.5 right-1">
-                                    <small>8</small>
+                                    <small>9</small>
                                 </span>
                             </button>
                         </div>
@@ -154,7 +163,7 @@
                                             <stop offset="100%" style="stop-color: #98DC47; stop-opacity: 1" />
                                         </linearGradient>
                                     </defs>
-                                    <circle cx="16" cy="16" r="13" stroke="url(#gradient)" stroke-width="5" fill="none" class="group-hover:stroke-white transition-colors" />
+                                    <circle cx="16" cy="16" r="13" stroke="url(#gradient)" stroke-width="5" fill="none" class="animate-pulse group-hover:stroke-white transition-colors" />
                                 </svg>
                             </button>
                         </div>
@@ -179,24 +188,26 @@
             :class="{
                 'opacity-100! pointer-events-auto! right-2!': 
                 (
-                    activeObject &&
-                    activeObject.id !== 'drawingArea' &&
-                    activeObject.class !== 'resize-handle'
+                    (
+                        activeObject || activeTool !== 'select'
+                    ) ||
+                    (
+                        activeObject &&
+                        activeTool === 'select' &&
+                        activeObject?.id !== 'drawingArea' &&
+                        activeObject?.class !== 'resize-handle'
+                    )
                 ) || (
-                    activeTool === 'draw' ||
-                    activeTool === 'text' ||
-                    activeTool === 'rectangle' ||
-                    activeTool === 'circle' ||
-                    activeTool === 'line' ||
-                    activeTool === 'arrow'
+                    ['draw', 'text', 'rectangle', 'circle', 'line', 'arrow'].includes(activeTool)
                 )
             }"
         >
             <template v-if="
-                activeObject && (
-                    activeTool === null || activeTool === 'select' || activeObject.type === 'i-text'
-                )">
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                ( activeObject && activeObject.hasOwnProperty('opacity') ) || activeTool !== 'select'
+            ">
+                <div
+                    v-if="activeObject"
+                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>Escala:</div>
                         <div>
@@ -246,7 +257,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                <div
+                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0"
+                >
                     <div class="flex items-center justify-between text-xs">
                         <div>Opacidade:</div>
                         <div>{{ objectOpacity * 100 }}%</div>
@@ -263,10 +276,33 @@
                     </div>
                 </div>
             </template>
-            <template v-if="activeTool === 'draw'">
+            <template
+                v-if="
+                    ['draw','line','arrow','rectangle','circle','triangle'].includes(activeTool) ||
+                    ['path','polyline','arrow'].includes(activeObject?.type) ||
+                    (
+                        activeObject?.hasOwnProperty('strokeWidth') && 
+                        activeObject?.id !== 'firstImage' &&
+                        activeObject?.id !== 'secondImage'
+                    )
+                ">
                 <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
-                        <div>Espessura:</div>
+                        <div>
+                            <template
+                                v-if="
+                                    activeTool === 'draw' ||
+                                    activeTool === 'line' ||
+                                    activeTool === 'arrow' ||
+                                    activeObject?.type === 'path' ||
+                                    activeObject?.type === 'polyline'
+                                ">
+                                Espessura:
+                            </template>
+                            <template v-else>
+                                Borda:
+                            </template>
+                        </div>
                         <div>{{ objectStrokeWidthMultiplier }}</div>
                     </div>
                     <div class="flex flex-col gap-2">
@@ -274,7 +310,7 @@
                             <input
                                 type="range"
                                 class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer range-sm  [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-[12px] [&::-webkit-slider-thumb]:w-[12px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500"
-                                min="2"
+                                min="0"
                                 max="10"
                                 step="2"
                                 v-model="objectStrokeWidthMultiplier"
@@ -282,7 +318,7 @@
                         </div>
                         <div class="flex items-center justify-between text-xs">
                             <div
-                                v-for="value in [2, 4, 6, 8, 10]"
+                                v-for="value in [0, 2, 4, 6, 8, 10]"
                                 :key="value"
                                 class="flex gap-4 items-center justify-center text-xs"
                                 :class="['w-[10px]']"
@@ -299,17 +335,44 @@
                         </div>
                     </div>
                 </div>
-            </template>
-
-            <template v-if="activeTool === 'draw'">
                 <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
-                        <div>Cor:</div>
-                        <div>{{ freeDrawingBrushColor }}</div>
+                        <div>Cor 
+                            <template
+                                v-if="
+                                    activeTool === 'line' ||
+                                    activeTool === 'draw' ||
+                                    activeTool === 'arrow' ||
+                                    activeObject?.type === 'path' ||
+                                    activeObject?.type === 'polyline'
+                                ">da linha</template>
+                            <template v-else>da borda</template>
+                            :</div>
+                        <div>{{ lineStrokeColor }}</div>
                     </div>
                     <div class="flex flex-col gap-2">
                         <ColorSelector
-                            v-model="freeDrawingBrushColor"
+                            v-model="lineStrokeColor"
+                            @close="closeColorPicker"
+                        />
+                    </div>
+                </div>
+            </template>
+            <template v-if="
+                activeTool === 'rectangle' ||
+                activeTool === 'circle' ||
+                activeObject?.type === 'rect' ||
+                activeObject?.type === 'circle' ||
+                activeObject?.type === 'triangle'
+            ">
+                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                    <div class="flex items-center justify-between text-xs">
+                        <div>Preenchimento:</div>
+                        <div>{{ fillColor }}</div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <ColorSelector
+                            v-model="fillColor"
                             @close="closeColorPicker"
                         />
                     </div>
@@ -389,6 +452,54 @@
                     </div>
                 </div>
             </template>
+            <template
+                v-if="activeObject && activeObject.id !== 'firstImage' && activeObject.id !== 'secondImage'"
+            >
+                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                    <div class="flex items-center justify-between text-xs">
+                        <div>Ordem:</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button @click="bringObjectToFront"
+                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200">
+                            <iconify-icon icon="hugeicons:layer-bring-to-front" class="text-base inline-block"></iconify-icon>
+                        </button>
+                        <button @click="bringObjectForward"
+                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200">
+                            <iconify-icon icon="hugeicons:layer-bring-forward" class="text-base inline-block"></iconify-icon>
+                        </button>
+                        <button @click="sendObjectBackwards"
+                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200">
+                            <iconify-icon icon="hugeicons:layer-send-backward" class="text-base inline-block"></iconify-icon>
+                        </button>
+                        <button @click="sendObjectToBack"
+                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200">
+                            <iconify-icon icon="hugeicons:layer-send-to-back" class="text-base inline-block"></iconify-icon>
+                        </button>
+                        
+                    </div>
+                </div>
+            </template>
+            <template
+                v-if="activeObject && activeObject.id !== 'firstImage' && activeObject.id !== 'secondImage'"
+            >
+                <div class="flex flex-col gap-2 border-b border-slate-200 pt-2 last:border-b-0 last:mb-0 last:pb-0">
+                    <div class="flex justify-end gap-2">
+                        <button
+                            class="h-8 w-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200"
+                            @click="duplicateActiveObject()"
+                        >
+                            <iconify-icon icon="cil:clone" class="text-sm inline-block"></iconify-icon>
+                        </button>
+                        <button
+                            class="h-8 w-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200"
+                            @click="deleteActiveObject()"
+                        >
+                            <iconify-icon icon="ic:baseline-delete-outline" class="text-base inline-block"></iconify-icon>
+                        </button>
+                    </div>
+                </div>
+            </template>
         </div>
         <div class="grow flex items-center justify-center w-full bg-[url(@/assets/image.png)] bg-size-[800px]">
             <div ref="canvasContainer" class="max-h-full overflow-auto w-full h-full flex items-center justify-center">
@@ -418,7 +529,9 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, IText, util } from 'fabric'
+import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, IText, Circle, Triangle, Polyline } from 'fabric'
+
+import { EraserBrush, ClippingGroup } from '@erase2d/fabric';
 
 import ColorSelector from '@/components/ColorSelector.vue';
 
@@ -450,7 +563,9 @@ const props = defineProps({
 
 const ready = ref(false);
 
-const brandColor = '#F95E16'; // Cor da marca (laranja)
+const eraser = ref(null);
+
+const brandColor = '#FB803C'; // Cor da marca (laranja)
 
 // Variáveis para zoom suave com mouse wheel (removidas se não usadas)
 
@@ -490,8 +605,6 @@ const objectOpacity = ref(1);
 
 const watchObjectScale = ref(true);
 
-const mouseOverFakeObject = ref(false);
-
 // Variáveis para o histórico de ações (Undo/Redo)
 const undoStack = ref([]);
 const redoStack = ref([]);
@@ -500,12 +613,10 @@ let isRestoring = false; // Flag para evitar que o estado seja salvo durante uma
 let isDrawingAreaUpdating = false; // Flag para evitar loops entre input e redimensionamento manual
 
 const displayMode = ref('ltr'); // 'ltr' (left-to-right) ou 'ttb' (top-to-bottom)
-const activeTool = ref(null); // Ferramenta ativa (ex: 'draw', 'select', etc.)
+const activeTool = ref(); // Ferramenta ativa (ex: 'draw', 'select', etc.)
 
-// Variáveis para o pincel de desenho livre
-const baseBrushWidth = ref(1); // Largura base do pincel
-const objectStrokeWidthMultiplier = ref(3); // Multiplicador da largura do pincel
-const freeDrawingBrushColor = ref('#F57C00'); // Cor do pincel de desenho livre
+const baseStrokeWidth = ref(1); // Largura base do pincel
+const objectStrokeWidthMultiplier = ref(4); // Multiplicador da largura do pincel
 
 // Variáveis para a ferramenta de texto
 const textFontSize = ref(24); // Tamanho da fonte
@@ -524,6 +635,16 @@ const cornerHandlersColorOver = '#8494ab';
 const cornerHandleSize = 50; // Tamanho do L
 const cornerThickness = 10; // Espessura da linha do L
 
+// Variáveis para a ferramenta de desenho de formas
+const isDrawingRect = ref(false);
+const isDrawingCircle = ref(false);
+const isDrawingTriangle = ref(false);
+const isDrawingLine = ref(false);
+const isDrawingArrow = ref(false);
+let rect, circle, triangle, line, arrow, origX, origY;
+const fillColor = ref(brandColor); // Cor de preenchimento de novos objetos
+const lineStrokeColor = ref(brandColor); // Cor da linha para linhas e setas
+
 // 3. CICLO DE VIDA 'onMounted'
 // O código dentro do 'onMounted' só executa *depois* que o componente foi montado na página.
 // Isso é crucial, pois garante que o elemento <canvas> já existe no DOM para que o
@@ -536,6 +657,24 @@ onMounted(async () => {
     });
 
     window.fabricCanvas = fabricCanvas;
+
+    eraser.value = new EraserBrush(fabricCanvas);
+    eraser.value.width = 30;
+    eraser.value.on('start', (e) => {
+       console.log('e', e);
+       
+    });
+
+    eraser.value.on('end', async (e) => {
+        e.preventDefault();
+
+        const { path, targets } = e.detail;
+        // const isErased = targets.includes(circle);
+
+        // const pathPerObjectMap = await eraser.value.commit({ path, targets });
+
+        // const committedEraser = circle.clipPath instanceof ClippingGroup;
+    });
 
     // Configurar eventos do Fabric.js
     setupFabricEvents();
@@ -592,8 +731,8 @@ watch([drawingAreaWidth, drawingAreaHeight], (
 
 watch(activeObject, (newObj) => {
     if (newObj) {
-        objectScaleX.value = parseFloat(newObj.scaleX.toFixed(2));
-        objectScaleY.value = parseFloat(newObj.scaleY.toFixed(2));
+        objectScaleX.value = parseFloat(newObj.scaleX?.toFixed(2));
+        objectScaleY.value = parseFloat(newObj.scaleY?.toFixed(2));
         objectOpacity.value = parseFloat(newObj?.opacity)?.toFixed(2);
     }
 });
@@ -655,19 +794,37 @@ watch(objectOpacity, (newOpacity) => {
 
 watch(objectStrokeWidthMultiplier, (newWidth) => {
     if (activeTool.value === 'draw' && fabricCanvas.freeDrawingBrush) {
-        objectStrokeWidthMultiplier.value = Math.max(1, Math.min(newWidth, 11)); // Limita entre 1 e 11
-
+        objectStrokeWidthMultiplier.value = Math.max(0, Math.min(newWidth, 11)); // Limita entre 0 e 11
         updateBrushWidth();
+    } else if (
+        activeObject.value && (
+            Object.prototype.hasOwnProperty.call(activeObject.value, 'strokeWidth'))
+        ) {
+            if (activeObject.value && (
+                activeObject.value.id !== 'firstImage' &&
+                activeObject.value.id !== 'secondImage'
+            )) {
+                objectStrokeWidthMultiplier.value = Math.max(0, Math.min(newWidth, 11)); // Limita entre 0 e 11
+                activeObject.value.set({
+                    strokeWidth: baseStrokeWidth.value * objectStrokeWidthMultiplier.value
+                });
+                fabricCanvas.requestRenderAll();
+                saveCanvasState();
+            }
+        }
     }
-});
+);
 
-watch(freeDrawingBrushColor, (newColor) => {
+watch(() => lineStrokeColor.value, (newColor) => {
+    const activeObject = fabricCanvas.getActiveObject();
     if (activeTool.value === 'draw' && fabricCanvas.freeDrawingBrush) {
         fabricCanvas.freeDrawingBrush.color = newColor;
-        fabricCanvas.requestRenderAll();
-        console.log('Cor do pincel atualizada para:', newColor);
-        
+    } else if (
+        activeObject && Object.prototype.hasOwnProperty.call(activeObject, 'stroke')
+    ) {
+        activeObject.set({ stroke: newColor });
     }
+    fabricCanvas.requestRenderAll();
 });
 
 watch(textFontSize, (newSize) => {
@@ -722,6 +879,19 @@ watch(textIsUnderline, (isUnderline) => {
     if (activeObject.value && activeObject.value.type === 'i-text') {
         activeObject.value.set({
             underline: isUnderline
+        });
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
+    }
+});
+
+watch(fillColor, (newColor) => {
+
+    const hasFill = activeObject.value && Object.prototype.hasOwnProperty.call(activeObject.value, 'fill');
+
+    if (hasFill) {
+        activeObject.value.set({
+            fill: newColor
         });
         fabricCanvas.requestRenderAll();
         saveCanvasState();
@@ -1108,6 +1278,14 @@ function setupCanvasStateListeners() {
         'selection:created': (e) => {
             // Limpa estados de hover quando algo é selecionado
             clearAllHoverStates();
+
+            // se a ferramenta ativa não for 'select', ignora a seleção
+            if (activeTool.value !== 'select') {
+                fabricCanvas.discardActiveObject();
+                fabricCanvas.requestRenderAll();
+                manageSelection(null);
+                return;
+            }
             
             // console.log(e);
             if (e.selected.length > 1) {
@@ -1214,6 +1392,87 @@ function handleKeyDown(e) {
         e.preventDefault();
         removeSelectedObjects();
     }
+
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        setActiveTool(null);
+        fabricCanvas.discardActiveObject();
+        fabricCanvas.requestRenderAll();
+        manageSelection(null);
+    }
+
+    if (!activeObject.value || activeObject.value.type !== 'i-text' || activeObject.value.isEditing === false) {
+        // Atalhos para mover objetos selecionados com as setas
+        if (activeObject.value) {
+            let step = 1;
+            if (e.shiftKey) step = 10; // Move 10 pixels se Shift estiver pressionado
+
+            switch (e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    activeObject.value.top -= step;
+                    activeObject.value.setCoords();
+                    fabricCanvas.requestRenderAll();
+                    saveCanvasState();
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    activeObject.value.top += step;
+                    activeObject.value.setCoords();
+                    fabricCanvas.requestRenderAll();
+                    saveCanvasState();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    activeObject.value.left -= step;
+                    activeObject.value.setCoords();
+                    fabricCanvas.requestRenderAll();
+                    saveCanvasState();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    activeObject.value.left += step;
+                    activeObject.value.setCoords();
+                    fabricCanvas.requestRenderAll();
+                    saveCanvasState();
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        switch (e.key) {
+            case '1':
+                setActiveTool('select');
+                break;
+            case '2':
+                setActiveTool('draw');
+                break;
+            case '3':
+                setActiveTool('rectangle');
+                break;
+            case '4':
+                setActiveTool('circle');
+                break;
+            case '5':
+                setActiveTool('triangle');
+                break;
+            case '6':
+                setActiveTool('line');
+                break;
+            case '7':
+                setActiveTool('arrow');
+                break;
+            case '8':
+                setActiveTool('text');
+                break;
+            case '9':
+                setActiveTool('eraser');
+                break;
+            default:
+                break;
+        }
+    }   
 }
 
 /**
@@ -1228,7 +1487,7 @@ function removeSelectedObjects() {
     
     // Verifica se é uma seleção múltipla
     if (activeObject.type === 'activeSelection') {
-        if(activeObject.id === 'leftImage' || activeObject.id === 'rightImage'){
+        if(activeObject.id === 'firstImage' || activeObject.id === 'secondImage'){
             alert('Ainda não é possível remover as imagens principais porque não há como adicioná-las novamente.');
             return; // Não remove elementos essenciais
         }
@@ -1249,7 +1508,7 @@ function removeSelectedObjects() {
             saveCanvasState();
         }
     } else {
-        if(activeObject.id === 'leftImage' || activeObject.id === 'rightImage'){
+        if(activeObject.id === 'firstImage' || activeObject.id === 'secondImage'){
             alert('Ainda não é possível remover as imagens principais porque não há como adicioná-las novamente.');
             return; // Não remove elementos essenciais
         }
@@ -1590,18 +1849,20 @@ function createText(x, y) {
     const text = new IText('Digite aqui...', {
         left: x,
         top: y,
-        fontSize: textFontSize.value,
-        fontFamily: textFontFamily.value,
-        fill: textColor.value,
-        fontWeight: textIsBold.value ? 'bold' : 'normal',
-        fontStyle: textIsItalic.value ? 'italic' : 'normal',
-        underline: textIsUnderline.value,
-        editable: true,
-        cornerColor: '#4285f4',
-        cornerStyle: 'circle',
-        transparentCorners: false,
-        cornerSize: 8,
-        rotatingPointOffset: 40,
+        // fontSize: textFontSize.value,
+        // fontFamily: textFontFamily.value,
+        // fill: textColor.value,
+        // fontWeight: textIsBold.value ? 'bold' : 'normal',
+        // fontStyle: textIsItalic.value ? 'italic' : 'normal',
+        // underline: textIsUnderline.value,
+        // editable: true,
+        // cornerColor: '#4285f4',
+        // cornerStyle: 'circle',
+        // transparentCorners: false,
+        // cornerSize: 8,
+        // rotatingPointOffset: 40,
+        // opacity: objectOpacity.value,
+        // strokeWidth: baseStrokeWidth.value * objectStrokeWidthMultiplier.value,
     });
 
     fabricCanvas.add(text);
@@ -1664,7 +1925,7 @@ async function setHoverState(target) {
                 hoverCursor: 'default',
                 id: `${target.id}-hover`,
                 stroke: brandColor,
-                strokeWidth: 4,
+                strokeWidth: target.strokeWidth ? target.strokeWidth + 4 : 4,
                 fill: target.fill || 'transparent',
                 paintFirst: 'stroke',
             });
@@ -1684,7 +1945,7 @@ async function setHoverState(target) {
                 });
             }
 
-            if (type === 'image') {
+            if (type === 'image' || type === 'rect' || type === 'ellipse') {
                 // create a rectangle with the same dimensions as the image
                 const rect = new Rect({
                     left: clone.left - clone.strokeWidth,
@@ -1814,12 +2075,102 @@ function setupFabricEvents() {
 
         // remove all hover states
         clearAllHoverStates();
+
+        if (activeTool.value === 'rectangle') {
+
+            isDrawingRect.value = true;
+            const pointer = fabricCanvas.getPointer(evt);
+            origX = pointer.x;
+            origY = pointer.y;
+            rect = new Rect({
+                left: origX,
+                top: origY,
+                originX: 'left',
+                originY: 'top',
+                width: pointer.x - origX,
+                height: pointer.y - origY,
+                angle: 0,
+                opacity: objectOpacity.value,
+                strokeWidth: baseStrokeWidth.value * objectStrokeWidthMultiplier.value,
+                fill: fillColor.value,
+                stroke: lineStrokeColor.value,
+                transparentCorners: false
+            });
+            fabricCanvas.add(rect);
+            return;
+        }
+
+        if (activeTool.value === 'circle') {
+            isDrawingCircle.value = true;
+            const pointer = fabricCanvas.getPointer(evt);
+            origX = pointer.x;
+            origY = pointer.y;
+            circle = new Circle({
+                left: origX,
+                top: origY,
+                originX: 'left',
+                originY: 'top',
+                opacity: objectOpacity.value,
+                strokeWidth: baseStrokeWidth.value * objectStrokeWidthMultiplier.value,
+                fill: fillColor.value,
+                stroke: lineStrokeColor.value,
+                radius: Math.abs(pointer.x - origX) / 2,
+                transparentCorners: false
+            });
+            fabricCanvas.add(circle);
+            return;
+        }
+
+        if (activeTool.value === 'triangle') {
+            isDrawingTriangle.value = true;
+            const pointer = fabricCanvas.getPointer(evt);
+            origX = pointer.x;
+            origY = pointer.y;
+            triangle = new Triangle({
+                left: origX,
+                top: origY,
+                originX: 'left',
+                originY: 'top',
+                opacity: objectOpacity.value,
+                strokeWidth: baseStrokeWidth.value * objectStrokeWidthMultiplier.value,
+                fill: fillColor.value,
+                stroke: lineStrokeColor.value,
+                width: Math.abs(pointer.x - origX),
+                height: Math.abs(pointer.y - origY),
+                transparentCorners: false
+            });
+            fabricCanvas.add(triangle);
+            return;
+        }
+
+        if ( activeTool.value === 'line' ) {
+            isDrawingLine.value = true;
+            const pointer = fabricCanvas.getPointer(evt);
+            const points = [
+                { x: pointer.x, y: pointer.y },
+            ];
+            line = new Polyline( points, {
+                left: pointer.x,
+                top: pointer.y,
+                fill: null,
+                opacity: objectOpacity.value,
+                strokeWidth: baseStrokeWidth.value * objectStrokeWidthMultiplier.value,
+                stroke: lineStrokeColor.value,
+                selectable: false,
+                evented: false,
+                id: `line-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+                perPixelTargetFind: true,
+            });
+            
+            fabricCanvas.add( line );
+            return;
+        }
         
         // Funcionalidade de texto - criar texto no clique
         if (activeTool.value === 'text') {
             // Verifica se já existe um texto em modo de edição
             const editingText = fabricCanvas.getObjects().find(obj => 
-                obj.type === 'i-text' && obj.isEditing
+                obj.type === 'i-text' && obj.isEditing,
             );
             
             // Se já existe um texto sendo editado, não cria um novo
@@ -1853,11 +2204,84 @@ function setupFabricEvents() {
             const vpt = fabricCanvas.viewportTransform;
             vpt[4] += evt.clientX - lastPosX;
             vpt[5] += evt.clientY - lastPosY;
-            fabricCanvas.requestRenderAll();
             lastPosX = evt.clientX;
             lastPosY = evt.clientY;
             fabricCanvas.setCursor('grabbing');
         }
+
+        if (isDrawingRect.value) {
+            const pointer = fabricCanvas.getPointer(opt.e);
+            
+            if(origX > pointer.x){
+                rect.set({ left: Math.abs(pointer.x) });
+            }
+            if(origY > pointer.y){
+                rect.set({ top: Math.abs(pointer.y) });
+            }
+            
+            rect.set({ width: Math.abs(origX - pointer.x) });
+            rect.set({ height: Math.abs(origY - pointer.y) });
+        }
+
+        if (isDrawingCircle.value) {
+            const pointer = fabricCanvas.getPointer(opt.e);
+            const radius = Math.abs(pointer.x - origX) / 2;
+            circle.set({
+                left: origX + radius,
+                top: origY + radius,
+                radius: radius
+            });
+        }
+
+        if (isDrawingTriangle.value) {
+            const pointer = fabricCanvas.getPointer(opt.e);
+            
+            if(origX > pointer.x){
+                triangle.set({ left: Math.abs(pointer.x) });
+            }
+            if(origY > pointer.y){
+                triangle.set({ top: Math.abs(pointer.y) });
+            }
+            
+            triangle.set({ width: Math.abs(origX - pointer.x) });
+            triangle.set({ height: Math.abs(origY - pointer.y) });
+        }
+
+        if (isDrawingLine.value) {
+            const pointer = fabricCanvas.getPointer(opt.e);
+            const points = line.points;
+
+            const newPoint = {
+                x: pointer.x,
+                y: pointer.y,
+            };
+
+            const newPoints = [
+                {
+                    x: points[0].x,
+                    y: points[0].y,
+                }, newPoint
+            ]
+
+            const newLine = new Polyline( newPoints, {
+                left: Math.min(points[0].x, newPoint.x),
+                top: Math.min(points[0].y, newPoint.y),
+                strokeWidth: line.strokeWidth,
+                fill: null,
+                stroke: line.stroke,
+                selectable: false,
+                evented: false,
+                id: line.id,
+                perPixelTargetFind: line.perPixelTargetFind,
+            });            
+
+            fabricCanvas.remove(line);
+            line = newLine;
+            fabricCanvas.add(line);
+            line.setCoords();
+        }
+        
+        fabricCanvas.renderAll();
     });
 
     fabricCanvas.on('mouse:up', function () {
@@ -1866,6 +2290,50 @@ function setupFabricEvents() {
             isDragging = false;
             fabricCanvas.selection = true;
             fabricCanvas.setCursor('default');
+        }
+
+        if (isDrawingRect.value) {
+            isDrawingRect.value = false;
+            rect.setCoords();
+            applyStyleToControls(rect);
+            fabricCanvas.setActiveObject(rect);
+            saveCanvasState();
+            activateSelectionMode();
+            return;
+        }
+
+        if (isDrawingCircle.value) {
+            isDrawingCircle.value = false;
+            circle.setCoords();
+            applyStyleToControls(circle);
+            fabricCanvas.setActiveObject(circle);
+            saveCanvasState();
+            activateSelectionMode();
+            return;
+        }
+
+        if (isDrawingTriangle.value) {
+            isDrawingTriangle.value = false;
+            triangle.setCoords();
+            applyStyleToControls(triangle);
+            fabricCanvas.setActiveObject(triangle);
+            saveCanvasState();
+            activateSelectionMode();
+            return;
+        }
+
+        if (isDrawingLine.value) {
+            isDrawingLine.value = false;
+            line.set({
+                selectable: true,
+                evented: true,
+            });
+            line.setCoords();
+            applyStyleToControls(line);
+            fabricCanvas.setActiveObject(line);
+            saveCanvasState();
+            activateSelectionMode();
+            return;
         }
     });
 
@@ -2311,12 +2779,12 @@ async function loadImages() {
 
         // set id for images e flags iniciais
         imgLeft.set({
-            id: 'leftImage',
+            id: 'firstImage',
             isManuallyMoved: false,
         });
         
         imgRight.set({
-            id: 'rightImage',
+            id: 'secondImage',
             isManuallyMoved: false,
         });
 
@@ -2402,7 +2870,7 @@ function adjustCanvasSize() {
  */
 function updateBrushWidth() {
     if (fabricCanvas && fabricCanvas.freeDrawingBrush) {
-        const adjustedWidth = objectStrokeWidthMultiplier.value * baseBrushWidth.value;
+        const adjustedWidth = objectStrokeWidthMultiplier.value * baseStrokeWidth.value;
         fabricCanvas.freeDrawingBrush.width = adjustedWidth;
     }
 }
@@ -2431,7 +2899,7 @@ function activateDrawingMode() {
         fabricCanvas.isDrawingMode = true;
         fabricCanvas.selection = false; // Desabilita seleção no modo de desenho
         fabricCanvas.freeDrawingBrush = new PencilBrush(fabricCanvas);
-        fabricCanvas.freeDrawingBrush.color = freeDrawingBrushColor.value;
+        fabricCanvas.freeDrawingBrush.color = lineStrokeColor.value;
         updateBrushWidth(); // Aplica a largura inicial do pincel
     }
 }
@@ -2460,14 +2928,94 @@ function activateTextMode() {
 }
 
 function setActiveTool(tool) {
-    activeTool.value = tool;
-    if (tool === 'draw') {
-        activateDrawingMode();
-    } else if(tool === 'select') {
-        activateSelectionMode();
-    } else if(tool === 'text') {
-        activateTextMode();
+    if( tool !== activeTool.value ) {
+        fabricCanvas.discardActiveObject();
     }
+    
+    activeTool.value = tool;
+
+    // Reseta para o padrão: seleção ativa, modo de desenho desativado
+    fabricCanvas.isDrawingMode = false;
+    fabricCanvas.selection = true;
+    fabricCanvas.defaultCursor = 'default';
+    fabricCanvas.hoverCursor = 'default';
+
+    switch (tool) {
+        case 'select':
+            activateSelectionMode();
+            break;
+        
+        case 'draw':
+            // Ativa o modo de desenho livre
+            fabricCanvas.isDrawingMode = true;
+            fabricCanvas.freeDrawingBrush = new PencilBrush(fabricCanvas);
+            fabricCanvas.freeDrawingBrush.width = parseInt(objectStrokeWidthMultiplier.value, 10) || 1;
+            fabricCanvas.freeDrawingBrush.color = lineStrokeColor.value; // Define a cor inicial
+            fabricCanvas.defaultCursor = 'crosshair';
+            fabricCanvas.hoverCursor = 'crosshair';
+            break;
+
+        case 'rectangle':
+            // Desativa o modo de desenho, mas permite seleção para modificar o retângulo
+            fabricCanvas.isDrawingMode = false;
+            fabricCanvas.selection = false;
+            fabricCanvas.defaultCursor = 'crosshair';
+            fabricCanvas.hoverCursor = 'crosshair';
+            break;
+        
+        case 'circle':
+            // Desativa o modo de desenho, mas permite seleção para modificar o círculo
+            fabricCanvas.isDrawingMode = false;
+            fabricCanvas.selection = false;
+            fabricCanvas.defaultCursor = 'crosshair';
+            fabricCanvas.hoverCursor = 'crosshair';
+            break;
+
+        case 'triangle':
+            // Desativa o modo de desenho, mas permite seleção para modificar o triângulo
+            fabricCanvas.isDrawingMode = false;
+            fabricCanvas.selection = false;
+            fabricCanvas.defaultCursor = 'crosshair';
+            fabricCanvas.hoverCursor = 'crosshair';
+            break;
+
+        case 'line':
+            // Desativa o modo de desenho, mas permite seleção para modificar a linha
+            fabricCanvas.isDrawingMode = false;
+            fabricCanvas.selection = false;
+            fabricCanvas.defaultCursor = 'crosshair';
+            fabricCanvas.hoverCursor = 'crosshair';
+            break;
+
+        case 'text':
+            // Desativa a seleção para evitar selecionar outros objetos ao clicar para criar texto
+            fabricCanvas.isDrawingMode = false;
+            fabricCanvas.selection = false;
+            fabricCanvas.defaultCursor = 'text';
+            fabricCanvas.hoverCursor = 'text';
+            break;
+        case 'arrow':
+            // Desativa o modo de desenho, mas permite seleção para modificar a seta
+            fabricCanvas.isDrawingMode = false;
+            fabricCanvas.selection = false;
+            fabricCanvas.defaultCursor = 'crosshair';
+            fabricCanvas.hoverCursor = 'crosshair';
+            break;
+        case 'eraser':
+            fabricCanvas.freeDrawingBrush = eraser.value;
+            fabricCanvas.isDrawingMode = true;
+            fabricCanvas.freeDrawingBrush.width = parseInt(objectStrokeWidthMultiplier.value, 10) * 2 || 1;
+            fabricCanvas.defaultCursor = 'crosshair';
+            fabricCanvas.hoverCursor = 'crosshair';
+            break;
+
+        default:
+            // Se a ferramenta não for reconhecida, volta para o modo de seleção
+            activateSelectionMode();
+            break;
+    }
+
+    fabricCanvas.requestRenderAll();
 }
 
 async function addWatermark() {
@@ -2553,16 +3101,100 @@ function updateWatermarkPosition() {
     fabricCanvas.renderAll();
 }
 
+function bringObjectToFront() {
+    const activeObject = fabricCanvas.getActiveObject();
+    if (activeObject) {
+        fabricCanvas.bringObjectToFront(activeObject);
 
+        // watermark always on top
+        if (watermark.value) {
+            fabricCanvas.bringObjectToFront(watermark.value);
+        }
 
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
+    }
+}
 
+function sendObjectToBack() {
+    const activeObject = fabricCanvas.getActiveObject();
+    if (activeObject) {
+        fabricCanvas.sendObjectToBack(activeObject);
 
+        // first and second images always at the back
+        if (firstImage.value) {
+            fabricCanvas.sendObjectToBack(firstImage.value);
+        }
+        if (secondImage.value) {
+            fabricCanvas.sendObjectToBack(secondImage.value);
+        }
 
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
+    }
+}
 
+function bringObjectForward() {
+    const activeObject = fabricCanvas.getActiveObject();
+    if (activeObject) {
+        fabricCanvas.bringObjectForward(activeObject);
 
+        // watermark always on top
+        if (watermark.value) {
+            fabricCanvas.bringObjectToFront(watermark.value);
+        }
 
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
+    }
+}
+function sendObjectBackwards() {
+    const activeObject = fabricCanvas.getActiveObject();
 
+    if (activeObject) {
+        fabricCanvas.sendObjectBackwards(activeObject);
 
+        // first and second images always at the back
+        if (firstImage.value) {
+            fabricCanvas.sendObjectToBack(firstImage.value);
+        }
+        if (secondImage.value) {
+            fabricCanvas.sendObjectToBack(secondImage.value);
+        }
+
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
+    }
+}
+
+async function duplicateActiveObject() {
+    const activeObject = fabricCanvas.getActiveObject();
+    if (activeObject) {
+        const cloned = await activeObject.clone();
+
+        cloned.set({
+            left: cloned.left + 20,
+            top: cloned.top + 20,
+            evented: true,
+            selectable: true,
+            id: `${cloned.id}-copy-${Date.now()}`,
+        });
+        fabricCanvas.add(cloned);
+        fabricCanvas.setActiveObject(cloned);
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
+    }
+}
+
+function deleteActiveObject() {
+    const activeObject = fabricCanvas.getActiveObject();
+    if (activeObject) {
+        fabricCanvas.remove(activeObject);
+        fabricCanvas.discardActiveObject();
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
+    }
+}
 
 
 // Exposição de métodos para uso externo

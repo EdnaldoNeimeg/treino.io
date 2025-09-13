@@ -134,7 +134,7 @@ const selectedColor = ref('#3B82F6')
 const opacity = ref(100)
 const manualColor = ref('#3B82F6')
 
-const mainColors = ['#F44336', '#FF9800', '#4CAF50', '#2196F3', '#3F51B5','#FFFFFF','#000000','#FDD835','#9C27B0','#00BCD4','#808080','#C0CA33','#AD1457']
+const mainColors = ['#F44336', '#FB803C', '#4CAF50', '#FFFFFF', '#3F51B5','#000000']
 
 // Gray scale from white to black
 const grayScale = [

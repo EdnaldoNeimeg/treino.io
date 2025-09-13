@@ -16,6 +16,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@erase2d/fabric": "^1.1.8",
     "@tailwindcss/vite": "^4.1.13",
     "fabric": "^6.7.1",
     "pinia": "^3.0.3",

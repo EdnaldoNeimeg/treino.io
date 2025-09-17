@@ -2,70 +2,58 @@
     <div class="relative flex flex-col items-center justify-center h-full overflow-hidden">
         <div class="w-full absolute z-20 top-2 left-1/2 -translate-x-1/2 flex items-center justify-between px-2">
             <div class="">
-              {{ activeTool }}
+                {{ activeTool }}
             </div>
             <div class="grow flex items-center justify-center gap-4">
                 <div class="flex items-center justify-center gap-2">
                     <div class="flex items-center gap-3 p-1.5 rounded-md shadow-xl bg-white">
                         <div class="flex items-center justify-center gap-2">
-                            <input
-                                type="text"
-                                v-model="drawingAreaWidth"
-                                placeholder="Largura"
-                                class="w-14 h-8 text-sm text-center border border-slate-200 rounded p-1 bg-slate-100"
-                            >
+                            <input type="text" v-model="drawingAreaWidth" placeholder="Largura"
+                                class="w-14 h-8 text-sm text-center border border-slate-200 rounded p-1 bg-slate-100">
                             <span>×</span>
-                            <input
-                                type="text"
-                                v-model="drawingAreaHeight"
-                                placeholder="Altura"
-                                class="w-14 h-8 text-sm text-center border border-slate-200 rounded p-1 bg-slate-100"
-                            >
+                            <input type="text" v-model="drawingAreaHeight" placeholder="Altura"
+                                class="w-14 h-8 text-sm text-center border border-slate-200 rounded p-1 bg-slate-100">
                         </div>
                         <div class="h-6 border-r border-slate-300"></div>
                         <div class="flex items-center justify-center gap-2">
                             <div class="flex items-center overflow-hidden">
-                                <button
-                                    @click="zoomOut()"
+                                <button @click="zoomOut()"
                                     class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded-l transition-colors">
                                     <iconify-icon icon="material-symbols:remove" class="inline-block"></iconify-icon>
                                 </button>
-                                <span class="flex items-center border-y border-slate-200 justify-center text-sm bg-slate-100 h-8 font-medium min-w-[50px] text-center">{{ Math.round(zoomLevel * 100) }}%</span>
-                                <button
-                                    @click="zoomIn()"
+                                <span
+                                    class="flex items-center border-y border-slate-200 justify-center text-sm bg-slate-100 h-8 font-medium min-w-[50px] text-center">{{
+                                    Math.round(zoomLevel * 100) }}%</span>
+                                <button @click="zoomIn()"
                                     class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded-r transition-colors">
                                     <iconify-icon icon="material-symbols:add" class="inline-block"></iconify-icon>
                                 </button>
                             </div>
-                            <button
-                                @click="fitToCanvas()"
+                            <button @click="fitToCanvas()"
                                 class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors">
                                 <iconify-icon icon="carbon:fit-to-screen" class="inline-block"></iconify-icon>
                             </button>
                         </div>
                         <div class="h-6 border-r border-slate-300"></div>
                         <div class="flex items-center">
-                            <button
-                                @click="displayMode = 'ltr'"
+                            <button @click="displayMode = 'ltr'"
                                 class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded-l transition-colors"
-                                :class="{ 'bg-primary-500! text-white': displayMode === 'ltr' }"
-                            >
-                                <iconify-icon icon="streamline:interface-layout-two-columns-colums-layout-layouts-two" class="inline-block"></iconify-icon>
+                                :class="{ 'bg-primary-500! text-white': displayMode === 'ltr' }">
+                                <iconify-icon icon="streamline:interface-layout-two-columns-colums-layout-layouts-two"
+                                    class="inline-block"></iconify-icon>
                             </button>
-                            <button
-                                @click="displayMode = 'ttb'"
+                            <button @click="displayMode = 'ttb'"
                                 class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded-r transition-colors"
-                                :class="{ 'bg-primary-500! text-white': displayMode === 'ttb' }"
-                            >
-                                <iconify-icon icon="streamline:interface-layout-two-columns-colums-layout-layouts-two" class="rotate-90 inline-block"></iconify-icon>
+                                :class="{ 'bg-primary-500! text-white': displayMode === 'ttb' }">
+                                <iconify-icon icon="streamline:interface-layout-two-columns-colums-layout-layouts-two"
+                                    class="rotate-90 inline-block"></iconify-icon>
                             </button>
                         </div>
                         <div class="h-6 border-r border-slate-300"></div>
                         <div class="flex items-center gap-2">
                             <button @click="setActiveTool('select')"
                                 class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'select' || activeTool === null }"
-                            >
+                                :class="{ 'bg-primary-500! text-white': activeTool === 'select' || activeTool === null }">
                                 <iconify-icon icon="iconamoon:cursor-fill" class="text-sm inline-block"></iconify-icon>
                                 <span class="text-xs absolute bottom-0.5 right-1">
                                     <small>1</small>
@@ -73,8 +61,7 @@
                             </button>
                             <button @click="setActiveTool('draw')"
                                 class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'draw' }"
-                            >
+                                :class="{ 'bg-primary-500! text-white': activeTool === 'draw' }">
                                 <iconify-icon icon="streamline:pen-draw" class="text-sm inline-block"></iconify-icon>
                                 <span class="text-xs absolute bottom-0.5 right-1">
                                     <small>2</small>
@@ -82,8 +69,7 @@
                             </button>
                             <button @click="setActiveTool('rectangle')"
                                 class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'rectangle' }"
-                            >
+                                :class="{ 'bg-primary-500! text-white': activeTool === 'rectangle' }">
                                 <iconify-icon icon="ic:outline-square" class="text-sm inline-block"></iconify-icon>
                                 <span class="text-xs absolute bottom-0.5 right-1">
                                     <small>3</small>
@@ -91,17 +77,16 @@
                             </button>
                             <button @click="setActiveTool('circle')"
                                 class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'circle' }"
-                            >
-                                <iconify-icon icon="mdi:checkbox-blank-circle-outline" class="text-sm inline-block"></iconify-icon>
+                                :class="{ 'bg-primary-500! text-white': activeTool === 'circle' }">
+                                <iconify-icon icon="mdi:checkbox-blank-circle-outline"
+                                    class="text-sm inline-block"></iconify-icon>
                                 <span class="text-xs absolute bottom-0.5 right-1">
                                     <small>4</small>
                                 </span>
                             </button>
                             <button @click="setActiveTool('triangle')"
                                 class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'triangle' }"
-                            >
+                                :class="{ 'bg-primary-500! text-white': activeTool === 'triangle' }">
                                 <iconify-icon icon="mdi:triangle-outline" class="text-sm inline-block"></iconify-icon>
                                 <span class="text-xs absolute bottom-0.5 right-1">
                                     <small>5</small>
@@ -109,26 +94,25 @@
                             </button>
                             <button @click="setActiveTool('line')"
                                 class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'line' }"
-                            >
-                                <iconify-icon icon="garden:dash-stroke-16" class="inline-block -rotate-45"></iconify-icon>
+                                :class="{ 'bg-primary-500! text-white': activeTool === 'line' }">
+                                <iconify-icon icon="garden:dash-stroke-16"
+                                    class="inline-block -rotate-45"></iconify-icon>
                                 <span class="text-sm absolute bottom-0.5 right-1">
                                     <small>6</small>
                                 </span>
                             </button>
                             <button @click="setActiveTool('arrow')"
                                 class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'arrow' }"
-                            >
-                                <iconify-icon icon="material-symbols-light:line-start-arrow-notch-rounded" class="text-lg inline-block -rotate-45"></iconify-icon>
+                                :class="{ 'bg-primary-500! text-white': activeTool === 'arrow' }">
+                                <iconify-icon icon="material-symbols-light:line-start-arrow-notch-rounded"
+                                    class="text-lg inline-block -rotate-45"></iconify-icon>
                                 <span class="text-sm absolute bottom-0.5 right-1">
                                     <small>7</small>
                                 </span>
                             </button>
                             <button @click="setActiveTool('text')"
                                 class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'text' }"
-                            >
+                                :class="{ 'bg-primary-500! text-white': activeTool === 'text' }">
                                 <iconify-icon icon="iconoir:text" class="text-base inline-block"></iconify-icon>
                                 <span class="text-sm absolute bottom-0.5 right-1">
                                     <small>8</small>
@@ -136,8 +120,7 @@
                             </button>
                             <button @click="setActiveTool('eraser')"
                                 class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'eraser' }"
-                            >
+                                :class="{ 'bg-primary-500! text-white': activeTool === 'eraser' }">
                                 <iconify-icon icon="lineicons:eraser" class="text-sm inline-block"></iconify-icon>
                                 <span class="text-xs absolute bottom-0.5 right-1">
                                     <small>9</small>
@@ -147,23 +130,19 @@
                         <div class="h-6 border-r border-slate-300"></div>
                         <div class="flex items-center gap-2">
                             <button
-                                class="group h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-gradient-to-br hover:from-[#07BEF8] hover:to-[#98DC47] rounded transition-colors"
-                            >
+                                class="group h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-gradient-to-br hover:from-[#07BEF8] hover:to-[#98DC47] rounded transition-colors">
                                 <!-- add svg gradient ring -->
                                 <svg class="w-5 h-5 animate-spin" viewBox="0 0 32 32">
                                     <defs>
                                         <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop
-                                                offset="0%"
-                                                style="stop-color: #07BEF8; stop-opacity: 1"
-                                                :style="{
+                                            <stop offset="0%" style="stop-color: #07BEF8; stop-opacity: 1" :style="{
 
-                                                }"
-                                            />
+                                            }" />
                                             <stop offset="100%" style="stop-color: #98DC47; stop-opacity: 1" />
                                         </linearGradient>
                                     </defs>
-                                    <circle cx="16" cy="16" r="13" stroke="url(#gradient)" stroke-width="5" fill="none" class="animate-pulse group-hover:stroke-white transition-colors" />
+                                    <circle cx="16" cy="16" r="13" stroke="url(#gradient)" stroke-width="5" fill="none"
+                                        class="animate-pulse group-hover:stroke-white transition-colors" />
                                 </svg>
                             </button>
                         </div>
@@ -174,39 +153,34 @@
                 <div class="bg-white rounded p-1 5 shadow-xl">
                     <button @click="toggleWatermark()"
                         class="h-8 w-8 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                        :class="{ 'bg-primary-500! text-white': showWatermark }"
-                    >
+                        :class="{ 'bg-primary-500! text-white': showWatermark }">
                         <iconify-icon icon="mdi-light:bookmark" class="text-lg inline-block"></iconify-icon>
                     </button>
                 </div>
             </div>
         </div>
-        <div
-            v-if="ready"
+        <div v-if="ready"
             class="absolute cursor-initial top-1/2 -translate-y-1/2 w-56 bg-white z-10 border border-slate-200 rounded p-4 shadow-lg text-xs transition-all duration-500 opacity-0 pointer-events-none -right-16 max-h-[80%]"
-
             :class="{
-                'opacity-100! pointer-events-auto! right-2!': 
-                (
+                'opacity-100! pointer-events-auto! right-2!':
                     (
-                        activeObject || activeTool !== 'select'
-                    ) ||
-                    (
-                        activeObject &&
-                        activeTool === 'select' &&
-                        activeObject?.id !== 'drawingArea' &&
-                        activeObject?.class !== 'resize-handle'
+                        (
+                            activeObject || activeTool !== 'select'
+                        ) ||
+                        (
+                            activeObject &&
+                            activeTool === 'select' &&
+                            activeObject?.id !== 'drawingArea' &&
+                            activeObject?.class !== 'resize-handle'
+                        )
+                    ) || (
+                        ['draw', 'text', 'rectangle', 'circle', 'line', 'arrow'].includes(activeTool)
                     )
-                ) || (
-                    ['draw', 'text', 'rectangle', 'circle', 'line', 'arrow'].includes(activeTool)
-                )
-            }"
-        >
+            }">
             <template v-if="
-                ( activeObject && activeObject.hasOwnProperty('opacity') ) || activeTool !== 'select'
+                (activeObject && activeObject.hasOwnProperty('opacity')) || activeTool !== 'select'
             ">
-                <div
-                    v-if="activeObject"
+                <div v-if="activeObject"
                     class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>Escala:</div>
@@ -214,89 +188,66 @@
                             <!-- uniform scale -->
                             <button
                                 class="w-6 h-6 flex items-center justify-center rounded hover:bg-slate-200 cursor-pointer"
-                                @click="objectUniformScale = !objectUniformScale"
-                            >
+                                @click="objectUniformScale = !objectUniformScale">
                                 <!-- lock outline icon -->
                                 <iconify-icon
-                                    :icon="objectUniformScale ? 'material-symbols:lock-outline' : 'material-symbols:lock-open-right-outline'" class="w-5 h-5 inline-block"></iconify-icon>
+                                    :icon="objectUniformScale ? 'material-symbols:lock-outline' : 'material-symbols:lock-open-right-outline'"
+                                    class="w-5 h-5 inline-block"></iconify-icon>
                             </button>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="flex items-center">
-                            <div
-                                class="h-8 w-8 flex items-center justify-center"
-                            >X:</div>
+                            <div class="h-8 w-8 flex items-center justify-center">X:</div>
                             <div class="w-full flex items-center justify-end">
-                                <input
-                                    type="number"
-                                    :value="objectScaleX"
-                                    min="0.1"
-                                    max="2"
-                                    step="0.05"
+                                <input type="number" :value="objectScaleX" min="0.1" max="2" step="0.05"
                                     class="w-16 bg-slate-100 rounded h-6 text-center border border-slate-200 p-1"
-                                    @input="objectScaleChangedInput($event, 'x')"
-                                />
+                                    @input="objectScaleChangedInput($event, 'x')" />
                             </div>
                         </div>
                         <div class="flex items-center">
-                            <div
-                                class="h-8 w-8 flex items-center justify-center"
-                            >Y:</div>
+                            <div class="h-8 w-8 flex items-center justify-center">Y:</div>
                             <div class="w-full flex items-center justify-end">
-                                <input
-                                    type="number"
-                                    :value="objectScaleY"
-                                    min="0.1"
-                                    max="2"
-                                    step="0.05"
+                                <input type="number" :value="objectScaleY" min="0.1" max="2" step="0.05"
                                     class="w-16 bg-slate-100 rounded h-6 text-center border border-slate-200 p-1"
-                                    @input="objectScaleChangedInput($event, 'y')"
-                                />
+                                    @input="objectScaleChangedInput($event, 'y')" />
                             </div>
                         </div>
                     </div>
                 </div>
                 <div
-                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0"
-                >
+                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>Opacidade:</div>
                         <div>{{ objectOpacity * 100 }}%</div>
                     </div>
                     <div class="">
-                        <input
-                            type="range"
+                        <input type="range"
                             class="w-full h-1 mb-6 bg-slate-200 rounded-lg appearance-none cursor-pointer range-sm  [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-[12px] [&::-webkit-slider-thumb]:w-[12px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            v-model="objectOpacity"
-                        >
+                            min="0" max="1" step="0.1" v-model="objectOpacity">
                     </div>
                 </div>
             </template>
-            <template
-                v-if="
-                    ['draw','line','arrow','rectangle','circle','triangle'].includes(activeTool) ||
-                    ['path','polyline','arrow'].includes(activeObject?.type) ||
-                    (
-                        activeObject?.hasOwnProperty('strokeWidth') && 
-                        activeObject?.id !== 'firstImage' &&
-                        activeObject?.id !== 'secondImage'
-                    )
-                ">
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+            <template v-if="
+                ['draw', 'line', 'arrow', 'rectangle', 'circle', 'triangle'].includes(activeTool) ||
+                ['path', 'polyline', 'arrow'].includes(activeObject?.type) ||
+                (
+                    activeObject?.hasOwnProperty('strokeWidth') &&
+                    activeObject?.id !== 'firstImage' &&
+                    activeObject?.id !== 'secondImage'
+                )
+            ">
+                <div
+                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>
-                            <template
-                                v-if="
-                                    activeTool === 'draw' ||
-                                    activeTool === 'line' ||
-                                    activeTool === 'arrow' ||
-                                    activeObject?.type === 'path' ||
-                                    activeObject?.type === 'polyline'
-                                ">
+                            <template v-if="
+                                activeTool === 'draw' ||
+                                activeTool === 'line' ||
+                                activeTool === 'arrow' ||
+                                activeObject?.type === 'path' ||
+                                activeObject?.type === 'polyline'
+                            ">
                                 Espessura:
                             </template>
                             <template v-else>
@@ -307,54 +258,41 @@
                     </div>
                     <div class="flex flex-col gap-2">
                         <div class="">
-                            <input
-                                type="range"
+                            <input type="range"
                                 class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer range-sm  [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-[12px] [&::-webkit-slider-thumb]:w-[12px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500"
-                                min="0"
-                                max="10"
-                                step="2"
-                                v-model="objectStrokeWidthMultiplier"
-                            >
+                                min="0" max="10" step="2" v-model="objectStrokeWidthMultiplier">
                         </div>
                         <div class="flex items-center justify-between text-xs">
-                            <div
-                                v-for="value in [0, 2, 4, 6, 8, 10]"
-                                :key="value"
-                                class="flex gap-4 items-center justify-center text-xs"
-                                :class="['w-[10px]']"
-                            >
+                            <div v-for="value in [0, 2, 4, 6, 8, 10]" :key="value"
+                                class="flex gap-4 items-center justify-center text-xs" :class="['w-[10px]']">
                                 <button
                                     class="rounded-full aspect-square bg-slate-700 hover:outline transition-colors cursor-pointer focus:outline-2 outline-offset-2 outline-primary-500"
                                     :style="{
                                         width: `${value}px`,
                                         height: `${value}px`
-                                    }"
-                                    @click="objectStrokeWidthMultiplier = value"
-                                ></button>
+                                    }" @click="objectStrokeWidthMultiplier = value"></button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                <div
+                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
-                        <div>Cor 
-                            <template
-                                v-if="
-                                    activeTool === 'line' ||
-                                    activeTool === 'draw' ||
-                                    activeTool === 'arrow' ||
-                                    activeObject?.type === 'path' ||
-                                    activeObject?.type === 'polyline'
-                                ">da linha</template>
+                        <div>Cor
+                            <template v-if="
+                                activeTool === 'line' ||
+                                activeTool === 'draw' ||
+                                activeTool === 'arrow' ||
+                                activeObject?.type === 'path' ||
+                                activeObject?.type === 'polyline'
+                            ">da linha</template>
                             <template v-else>da borda</template>
-                            :</div>
+                            :
+                        </div>
                         <div>{{ lineStrokeColor }}</div>
                     </div>
                     <div class="flex flex-col gap-2">
-                        <ColorSelector
-                            v-model="lineStrokeColor"
-                            @close="closeColorPicker"
-                        />
+                        <ColorSelector v-model="lineStrokeColor" @close="closeColorPicker" />
                     </div>
                 </div>
             </template>
@@ -365,16 +303,14 @@
                 activeObject?.type === 'circle' ||
                 activeObject?.type === 'triangle'
             ">
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                <div
+                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>Preenchimento:</div>
                         <div>{{ fillColor }}</div>
                     </div>
                     <div class="flex flex-col gap-2">
-                        <ColorSelector
-                            v-model="fillColor"
-                            @close="closeColorPicker"
-                        />
+                        <ColorSelector v-model="fillColor" @close="closeColorPicker" />
                     </div>
                 </div>
             </template>
@@ -387,40 +323,36 @@
                     )
                 )
             ">
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                <div
+                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>Cor do Texto:</div>
                         <div>{{ textColor }}</div>
                     </div>
                     <div class="flex flex-col gap-2">
-                        <ColorSelector
-                            v-model="textColor"
-                            @close="closeColorPicker"
-                        />
+                        <ColorSelector v-model="textColor" @close="closeColorPicker" />
                     </div>
                 </div>
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                <div
+                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>Tamanho da Fonte:</div>
                         <div>{{ textFontSize }}px</div>
                     </div>
                     <div class="flex flex-col gap-2">
-                        <input
-                            type="range"
+                        <input type="range"
                             class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer range-sm  [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-[12px] [&::-webkit-slider-thumb]:w-[12px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500"
-                            min="8"
-                            max="120"
-                            step="2"
-                            v-model="textFontSize"
-                        >
+                            min="8" max="120" step="2" v-model="textFontSize">
                     </div>
                 </div>
 
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                <div
+                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>Família da Fonte:</div>
                     </div>
-                    <select v-model="textFontFamily" class="w-full p-2 text-xs border border-slate-200 rounded bg-slate-100">
+                    <select v-model="textFontFamily"
+                        class="w-full p-2 text-xs border border-slate-200 rounded bg-slate-100">
                         <option value="Arial">Arial</option>
                         <option value="Times New Roman">Times New Roman</option>
                         <option value="Helvetica">Helvetica</option>
@@ -429,73 +361,74 @@
                     </select>
                 </div>
 
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                <div
+                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>Estilo:</div>
                     </div>
                     <div class="flex gap-2">
-                        <button @click="textIsBold = !textIsBold" 
-                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs font-bold transition-colors"
-                                :class="textIsBold ? 'bg-primary-500 text-white border-primary-500' : 'bg-slate-100 hover:bg-slate-200'">
+                        <button @click="textIsBold = !textIsBold"
+                            class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs font-bold transition-colors"
+                            :class="textIsBold ? 'bg-primary-500 text-white border-primary-500' : 'bg-slate-100 hover:bg-slate-200'">
                             B
                         </button>
-                        <button @click="textIsItalic = !textIsItalic" 
-                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs italic transition-colors"
-                                :class="textIsItalic ? 'bg-primary-500 text-white border-primary-500' : 'bg-slate-100 hover:bg-slate-200'">
+                        <button @click="textIsItalic = !textIsItalic"
+                            class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs italic transition-colors"
+                            :class="textIsItalic ? 'bg-primary-500 text-white border-primary-500' : 'bg-slate-100 hover:bg-slate-200'">
                             I
                         </button>
-                        <button @click="textIsUnderline = !textIsUnderline" 
-                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs underline transition-colors"
-                                :class="textIsUnderline ? 'bg-primary-500 text-white border-primary-500' : 'bg-slate-100 hover:bg-slate-200'">
+                        <button @click="textIsUnderline = !textIsUnderline"
+                            class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs underline transition-colors"
+                            :class="textIsUnderline ? 'bg-primary-500 text-white border-primary-500' : 'bg-slate-100 hover:bg-slate-200'">
                             U
                         </button>
                     </div>
                 </div>
             </template>
-            <template
-                v-if="activeObject && activeObject.id !== 'firstImage' && activeObject.id !== 'secondImage'"
-            >
-                <div class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+            <template v-if="activeObject && activeObject.id !== 'firstImage' && activeObject.id !== 'secondImage'">
+                <div
+                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
                         <div>Ordem:</div>
                     </div>
                     <div class="flex gap-2">
                         <button @click="bringObjectToFront"
-                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200">
-                            <iconify-icon icon="hugeicons:layer-bring-to-front" class="text-base inline-block"></iconify-icon>
+                            class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200">
+                            <iconify-icon icon="hugeicons:layer-bring-to-front"
+                                class="text-base inline-block"></iconify-icon>
                         </button>
                         <button @click="bringObjectForward"
-                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200">
-                            <iconify-icon icon="hugeicons:layer-bring-forward" class="text-base inline-block"></iconify-icon>
+                            class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200">
+                            <iconify-icon icon="hugeicons:layer-bring-forward"
+                                class="text-base inline-block"></iconify-icon>
                         </button>
                         <button @click="sendObjectBackwards"
-                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200">
-                            <iconify-icon icon="hugeicons:layer-send-backward" class="text-base inline-block"></iconify-icon>
+                            class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200">
+                            <iconify-icon icon="hugeicons:layer-send-backward"
+                                class="text-base inline-block"></iconify-icon>
                         </button>
                         <button @click="sendObjectToBack"
-                                class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200">
-                            <iconify-icon icon="hugeicons:layer-send-to-back" class="text-base inline-block"></iconify-icon>
+                            class="flex-1 h-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200">
+                            <iconify-icon icon="hugeicons:layer-send-to-back"
+                                class="text-base inline-block"></iconify-icon>
                         </button>
-                        
+
                     </div>
                 </div>
             </template>
-            <template
-                v-if="activeObject && activeObject.id !== 'firstImage' && activeObject.id !== 'secondImage'"
-            >
+            <template v-if="activeObject && activeObject.id !== 'firstImage' && activeObject.id !== 'secondImage'">
                 <div class="flex flex-col gap-2 border-b border-slate-200 pt-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex justify-end gap-2">
                         <button
                             class="h-8 w-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200"
-                            @click="duplicateActiveObject()"
-                        >
+                            @click="duplicateActiveObject()">
                             <iconify-icon icon="cil:clone" class="text-sm inline-block"></iconify-icon>
                         </button>
                         <button
                             class="h-8 w-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200"
-                            @click="deleteActiveObject()"
-                        >
-                            <iconify-icon icon="ic:baseline-delete-outline" class="text-base inline-block"></iconify-icon>
+                            @click="deleteActiveObject()">
+                            <iconify-icon icon="ic:baseline-delete-outline"
+                                class="text-base inline-block"></iconify-icon>
                         </button>
                     </div>
                 </div>
@@ -503,23 +436,44 @@
         </div>
         <div class="grow flex items-center justify-center w-full bg-[url(@/assets/image.png)] bg-size-[800px]">
             <div ref="canvasContainer" class="max-h-full overflow-auto w-full h-full flex items-center justify-center">
-                <div ref="canvasWrapper" class="relative w-full h-full bg-red-500">
+                <div ref="canvasWrapper" class="relative w-full h-full">
                     <canvas ref="canvasEl"></canvas>
                 </div>
-                <div class="absolute flex items-center justify-between bottom-2 left-1/2 transform -translate-x-1/2">
-                    <div class="flex items-center rounded shadow-xl bg-white">
-                        <button
-                            @click="undo()"
-                            :disabled="undoStack.length <= 1"
-                            class="h-8 w-8 flex items-center justify-center bg-slate-200 hover:bg-primary-500 hover:text-white text-black rounded-l transition-colors">
-                            <iconify-icon icon="iconoir:undo" class="inline-block"></iconify-icon>
-                        </button>
-                        <button
-                            @click="redo()"
-                            :disabled="redoStack.length === 0"
-                            class="h-8 w-8 flex items-center justify-center bg-slate-200 hover:bg-primary-500 hover:text-white text-black rounded-r transition-colors">
-                            <iconify-icon icon="iconoir:redo" class="inline-block"></iconify-icon>
-                        </button>
+                <div
+                    class="absolute w-full flex items-center justify-between bottom-4 left-1/2 transform -translate-x-1/2">
+                    <div class="grid grid-cols-2 md:grid-cols-3 w-full">
+                        <div class="hidden md:flex pl-4 pb-6">
+                            <div>
+
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-center gap-4">
+                            <span
+                                class="border-2 bg-slate-200 border-slate-300 text-slate-500 rounded-lg flex items-center px-4 h-8 font-semibold"
+                                :class="{ 'bg-primary-500 text-white': altKeyPressed }">Alt +
+                                <iconify-icon icon="ph:mouse-left-click-fill"
+                                    class="inline-block text-lg"></iconify-icon> =
+                                Mover
+                            </span>
+                            <div class="flex items-center justify-center">
+                                <button @click="undo()" :disabled="undoStack.length <= 1"
+                                    class="h-8 w-8 bg-slate-200 flex items-center justify-center border-2 border-r-0 border-slate-300 hover:bg-primary-500 hover:text-white text-black rounded-l-lg transition-colors">
+                                    <iconify-icon icon="iconoir:undo" class="inline-block"></iconify-icon>
+                                </button>
+                                <button @click="redo()" :disabled="redoStack.length === 0"
+                                    class="h-8 w-8 bg-slate-200 flex items-center justify-center border-2 border-slate-300 hover:bg-primary-500 hover:text-white text-black rounded-r-lg transition-colors">
+                                    <iconify-icon icon="iconoir:redo" class="inline-block"></iconify-icon>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex justify-end items-center pr-4">
+                            <!-- Finish button -->
+                            <button @click="finishDrawing()"
+                                class="h-10 px-8 flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 text-white rounded font-semibold transition-colors cursor-pointer">
+                                <iconify-icon icon="iconoir:check" class="inline-block"></iconify-icon>
+                                <span class="ml-3">Finalizar</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -528,8 +482,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, IText, Circle, Triangle, Polyline } from 'fabric'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
+import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, IText, Circle, Triangle, Polyline, Point } from 'fabric'
 
 import { EraserBrush, ClippingGroup } from '@erase2d/fabric';
 
@@ -559,9 +513,23 @@ const props = defineProps({
         type: String,
         required: true,
     },
+    logoSettings: {
+        type: Object,
+        required: false,
+        default: () => ({
+            url: '/logo-comprido-escuro.png',
+            position: 'bottom-right',
+            scale: 1,
+            opacity: 0.5,
+        }),
+    },
 });
 
+const emit = defineEmits(['finished']);
+
 const ready = ref(false);
+const finishing = ref(false);
+const altKeyPressed = ref(false);
 
 const eraser = ref(null);
 
@@ -581,9 +549,7 @@ const canvasEl = ref(null);
 let fabricCanvas = null
 
 const showWatermark = ref(true);
-let watermarkImage = '/logo-comprido-escuro.png';
 const watermark = ref(null);
-const baseScale = 0.08; // Escala base da marca d'água
 
 const firstImage = ref(null);
 const firstClipPath = ref(null);
@@ -661,8 +627,8 @@ onMounted(async () => {
     eraser.value = new EraserBrush(fabricCanvas);
     eraser.value.width = 30;
     eraser.value.on('start', (e) => {
-       console.log('e', e);
-       
+        console.log('e', e);
+
     });
 
     eraser.value.on('end', async (e) => {
@@ -681,7 +647,6 @@ onMounted(async () => {
 
     // Chama a função para carregar as imagens.
     await loadImages();
-    await addDrawingArea();
     await adjustCanvasSize();
     await addClipPaths();
     saveCanvasState(); // Salva o estado inicial
@@ -699,7 +664,7 @@ onMounted(async () => {
     // Ativa a ferramenta de seleção por padrão
     activateSelectionMode();
     addDrawingAreaHandlers();
-    
+
     // const arrow = new Arrow({
     //     x1: 50,
     //     y1: 50,
@@ -711,7 +676,7 @@ onMounted(async () => {
     // fabricCanvas.add(arrow);
 
     setTimeout(() => {
-       ready.value = true; 
+        ready.value = true;
     }, 500);
 });
 
@@ -719,10 +684,11 @@ onMounted(async () => {
 onUnmounted(() => {
     window.removeEventListener('resize', adjustCanvasSize);
     document.removeEventListener('keydown', handleKeyDown);
+    document.removeEventListener('keyup', handleKeyUp);
 });
 
 // Watchers para atualizar a área de desenho quando as dimensões mudarem
-watch([drawingAreaWidth, drawingAreaHeight], ( 
+watch([drawingAreaWidth, drawingAreaHeight], (
     newValues,
     oldValues
 ) => {
@@ -738,14 +704,14 @@ watch(activeObject, (newObj) => {
 });
 
 watch(objectScaleX, (newScale) => {
-    if(watchObjectScale.value === false) return;
+    if (watchObjectScale.value === false) return;
 
     if (activeObject.value && !isNaN(newScale) && newScale > 0) {
 
         const ratio = activeObject.value.scaleY / activeObject.value.scaleX;
         let scaleY = activeObject.value.scaleY;
 
-        if(objectUniformScale.value) {
+        if (objectUniformScale.value) {
             objectScaleY.value = newScale * ratio;
             scaleY = newScale * ratio;
         }
@@ -761,14 +727,14 @@ watch(objectScaleX, (newScale) => {
 });
 
 watch(objectScaleY, (newScale) => {
-    if(watchObjectScale.value === false)  return;
-    
+    if (watchObjectScale.value === false) return;
+
     if (activeObject.value && !isNaN(newScale) && newScale > 0) {
 
         const ratio = activeObject.value.scaleX / activeObject.value.scaleY;
         let scaleX = activeObject.value.scaleX;
 
-        if(objectUniformScale.value) {
+        if (objectUniformScale.value) {
             objectScaleX.value = newScale * ratio;
             scaleX = newScale * ratio;
         }
@@ -799,20 +765,20 @@ watch(objectStrokeWidthMultiplier, (newWidth) => {
     } else if (
         activeObject.value && (
             Object.prototype.hasOwnProperty.call(activeObject.value, 'strokeWidth'))
-        ) {
-            if (activeObject.value && (
-                activeObject.value.id !== 'firstImage' &&
-                activeObject.value.id !== 'secondImage'
-            )) {
-                objectStrokeWidthMultiplier.value = Math.max(0, Math.min(newWidth, 11)); // Limita entre 0 e 11
-                activeObject.value.set({
-                    strokeWidth: baseStrokeWidth.value * objectStrokeWidthMultiplier.value
-                });
-                fabricCanvas.requestRenderAll();
-                saveCanvasState();
-            }
+    ) {
+        if (activeObject.value && (
+            activeObject.value.id !== 'firstImage' &&
+            activeObject.value.id !== 'secondImage'
+        )) {
+            objectStrokeWidthMultiplier.value = Math.max(0, Math.min(newWidth, 11)); // Limita entre 0 e 11
+            activeObject.value.set({
+                strokeWidth: baseStrokeWidth.value * objectStrokeWidthMultiplier.value
+            });
+            fabricCanvas.requestRenderAll();
+            saveCanvasState();
         }
     }
+}
 );
 
 watch(() => lineStrokeColor.value, (newColor) => {
@@ -828,7 +794,7 @@ watch(() => lineStrokeColor.value, (newColor) => {
 });
 
 watch(textFontSize, (newSize) => {
-    
+
     if (activeObject.value && activeObject.value.type === 'i-text') {
         activeObject.value.set({
             fontSize: newSize
@@ -898,6 +864,24 @@ watch(fillColor, (newColor) => {
     }
 });
 
+const logoSettings = computed(() => {
+    if (typeof props.logoSettings === 'string') {
+        const settings = JSON.parse(props.logoSettings);
+        return {
+            url: settings.url || '/logo-comprido-escuro.png',
+            position: settings.position || 'bottom-right',
+            scale: settings.scale || 1,
+            opacity: settings.opacity || 0.5,
+        }
+    } return {
+        url: props.logoSettings.url || '/logo-comprido-escuro.png',
+        position: props.logoSettings.position || 'bottom-right',
+        scale: props.logoSettings.scale || 1,
+        opacity: props.logoSettings.opacity || 0.5,
+    }
+});
+
+
 // 4. FUNÇÕES PRINCIPAIS
 
 function objectScaleChangedInput(event, axis) {
@@ -915,6 +899,20 @@ function objectScaleChangedInput(event, axis) {
     }
 }
 
+function getImagesMinSize() {
+    if (!firstImage.value || !secondImage.value) return { width: 0, height: 0 };
+
+    const firstImgWidth = firstImage.value.getScaledWidth();
+    const firstImgHeight = firstImage.value.getScaledHeight();
+    const secondImgWidth = secondImage.value.getScaledWidth();
+    const secondImgHeight = secondImage.value.getScaledHeight();
+
+    const minWidth = Math.min(firstImgWidth, secondImgWidth);
+    const minHeight = Math.min(firstImgHeight, secondImgHeight);
+
+    return { width: minWidth, height: minHeight };
+}
+
 async function addDrawingArea() {
     if (!firstClipPath.value || !secondClipPath.value) return;
 
@@ -924,20 +922,18 @@ async function addDrawingArea() {
         drawingArea.value = null;
     }
 
-    // Calcula dimensões baseadas nos clipPaths
-    const totalWidth = firstClipPath.value.width + secondClipPath.value.width;
-    const maxHeight = Math.max(firstClipPath.value.height, secondClipPath.value.height);
-    
-    // Posição inicial no centro da área dos clipPaths (já que usamos originX/Y center)
-    const centerX = firstClipPath.value.left + totalWidth / 2;
-    const centerY = firstClipPath.value.top + maxHeight / 2;
+    const canvasWidth = fabricCanvas.getWidth();
+    const canvasHeight = fabricCanvas.getHeight();
+
+    const totalImageWidth = firstClipPath.value.width + secondClipPath.value.width;
+    const maxImageHeight = Math.max(firstClipPath.value.height, secondClipPath.value.height);
 
     // Cria o retângulo da área de desenho
     const drawingAreaRect = new Rect({
-        left: centerX,
-        top: centerY,
-        width: totalWidth,
-        height: maxHeight,
+        left: canvasWidth / 2,
+        top: canvasHeight / 2,
+        width: totalImageWidth,
+        height: maxImageHeight,
         fill: 'white', // Fundo branco para a área de desenho
         stroke: 'oklch(67.72% 0.103 40.38)', // Cor da borda azul
         borderColor: 'oklch(67.72% 0.103 40.38)',
@@ -964,20 +960,20 @@ async function addDrawingArea() {
         originX: 'center', // Origem X no centro
         originY: 'center', // Origem Y no centro
         perPixelTargetFind: false,
-        
+
     });
 
     drawingArea.value = drawingAreaRect;
-    drawingAreaWidth.value = totalWidth;
-    drawingAreaHeight.value = maxHeight;
+    drawingAreaWidth.value = totalImageWidth;
+    drawingAreaHeight.value = maxImageHeight;
 
     // Adiciona ao canvas
     fabricCanvas.add(drawingAreaRect);
     fabricCanvas.sendObjectToBack(drawingAreaRect);
-    
+
     // Armazena a referência
     drawingArea.value = drawingAreaRect;
-    
+
     // // Adiciona listener para atualizar os inputs quando redimensionado
     // drawingAreaRect.on('scaling', () => {
     //     if (!isDrawingAreaUpdating) {
@@ -986,13 +982,13 @@ async function addDrawingArea() {
     //         const newHeight = Math.round(drawingAreaRect.height * drawingAreaRect.scaleY);
     //         drawingAreaWidth.value = newWidth;
     //         drawingAreaHeight.value = newHeight;
-            
+
     //         // Redimensiona os clipPaths em tempo real
     //         updateClipPathsSize();
-            
+
     //         // Atualiza a posição da watermark em tempo real
     //         updateWatermarkPosition();
-            
+
     //         isDrawingAreaUpdating = false;
     //     }
     // });
@@ -1007,7 +1003,7 @@ async function addDrawingArea() {
             const newHeight = Math.round(drawingAreaRect.height * drawingAreaRect.scaleY);
             drawingAreaWidth.value = newWidth;
             drawingAreaHeight.value = newHeight;
-            
+
             // Normaliza o objeto para manter apenas width/height sem escala
             drawingAreaRect.set({
                 width: newWidth,
@@ -1015,21 +1011,21 @@ async function addDrawingArea() {
                 scaleX: 1,
                 scaleY: 1
             });
-            
+
             // Redimensiona os clipPaths para seguir o drawingArea
-            updateClipPathsSize();
-            
+            await updateClipPathsSize();
+
             // Reposiciona as imagens preservando offsets relativos, se houver
             await updateImagesPosition({ width: oldWidth, height: oldHeight });
-            
+
             // Atualiza a posição da watermark após redimensionamento
             updateWatermarkPosition();
-            
+
             fabricCanvas.requestRenderAll();
             isDrawingAreaUpdating = false;
         }
     });
-    
+
     fabricCanvas.requestRenderAll();
 }
 
@@ -1059,6 +1055,9 @@ async function updateClipPathsSize() {
         width: drawingAreaWidth / 2,
         height: drawingAreaHeight
     });
+
+    firstClipPath.value.setCoords();
+    secondClipPath.value.setCoords();
 
     fabricCanvas.requestRenderAll();
 }
@@ -1154,21 +1153,20 @@ async function updateDrawingAreaDimensions(oldValues, newValues) {
         scaleX: 1,
         scaleY: 1
     });
+    drawingArea.value.setCoords();
 
-    fabricCanvas.requestRenderAll();
-    
     // Redimensiona os clipPaths para seguir o drawingArea
     await updateClipPathsSize();
 
     // Atualiza a posição das imagens com base no tamanho anterior
     await updateImagesPosition(oldSize);
-    
+
     // Atualiza a posição da watermark
     updateWatermarkPosition();
-    
+
     // Salva o estado após a modificação
     saveCanvasState();
-    
+
     isDrawingAreaUpdating = false;
 }
 
@@ -1205,7 +1203,7 @@ function undo() {
 
     // Pega o estado anterior
     const previousState = undoStack.value[undoStack.value.length - 1];
-    
+
     // Restaura o canvas para o estado anterior
     restoreCanvasState(previousState);
 }
@@ -1280,13 +1278,13 @@ function setupCanvasStateListeners() {
             clearAllHoverStates();
 
             // se a ferramenta ativa não for 'select', ignora a seleção
-            if (activeTool.value !== 'select') {
+            if (['draw', 'rectangle', 'circle', 'triangle', 'line', 'arrow', 'erase'].includes(activeTool.value)) {
                 fabricCanvas.discardActiveObject();
                 fabricCanvas.requestRenderAll();
                 manageSelection(null);
                 return;
             }
-            
+
             // console.log(e);
             if (e.selected.length > 1) {
                 const objectsToIgnore = e.selected.filter(o => o.id === 'drawingArea' || o.class === 'resize-handle');
@@ -1316,13 +1314,13 @@ function setupCanvasStateListeners() {
         'selection:updated': (e) => {
             // Limpa estados de hover quando a seleção é atualizada
             clearAllHoverStates();
-            
+
             const objectsToIgnore = e.selected.filter(o => o.id === 'drawingArea' || o.class === 'resize-handle');
             const activeSelection = fabricCanvas.getActiveObject();
             if (activeSelection?._objects?.length > 1) {
-                
+
                 if (activeSelection) {
-                    
+
                     objectsToIgnore.forEach(obj => {
                         activeSelection.remove(obj);
                     });
@@ -1336,14 +1334,14 @@ function setupCanvasStateListeners() {
                 }
 
                 applyStyleToControls(activeSelection);
-                
+
             } else {
                 manageSelection(e.selected[0]);
-                
-                if(activeSelection?._objects?.length > 1) {
+
+                if (activeSelection?._objects?.length > 1) {
                     applyStyleToControls(activeSelection);
                 } else {
-                    if(activeSelection.id !== 'drawingArea' && activeSelection.class !== 'resize-handle') {
+                    if (activeSelection.id !== 'drawingArea' && activeSelection.class !== 'resize-handle') {
                         applyStyleToControls(activeSelection);
                     }
                 }
@@ -1354,7 +1352,7 @@ function setupCanvasStateListeners() {
         },
         'object:scaling': (e) => {
             const obj = e.target;
-            watchObjectScale.value =false
+            watchObjectScale.value = false
 
             objectScaleX.value = obj.scaleX.toFixed(2);
             objectScaleY.value = obj.scaleY.toFixed(2);
@@ -1367,6 +1365,7 @@ function setupCanvasStateListeners() {
  */
 function setupKeyboardShortcuts() {
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
 }
 
 function manageSelection(object) {
@@ -1400,6 +1399,9 @@ function handleKeyDown(e) {
         fabricCanvas.requestRenderAll();
         manageSelection(null);
     }
+
+    // alt
+    altKeyPressed.value = e.altKey;
 
     if (!activeObject.value || activeObject.value.type !== 'i-text' || activeObject.value.isEditing === false) {
         // Atalhos para mover objetos selecionados com as setas
@@ -1472,7 +1474,13 @@ function handleKeyDown(e) {
             default:
                 break;
         }
-    }   
+    }
+}
+
+function handleKeyUp(e) {
+    if (e.key === 'Alt') {
+        altKeyPressed.value = false;
+    }
 }
 
 /**
@@ -1480,25 +1488,25 @@ function handleKeyDown(e) {
  */
 function removeSelectedObjects() {
     if (!fabricCanvas) return;
-    
+
     const activeObject = fabricCanvas.getActiveObject();
-    
+
     if (!activeObject) return;
-    
+
     // Verifica se é uma seleção múltipla
     if (activeObject.type === 'activeSelection') {
-        if(activeObject.id === 'firstImage' || activeObject.id === 'secondImage'){
+        if (activeObject.id === 'firstImage' || activeObject.id === 'secondImage') {
             alert('Ainda não é possível remover as imagens principais porque não há como adicioná-las novamente.');
             return; // Não remove elementos essenciais
         }
 
         const objectsToRemove = activeObject.getObjects().filter(obj => {
             // Não permite remover imagens principais, área de desenho ou handlers de resize
-            return obj.id !== 'drawingArea' && 
-                   obj.id !== 'watermark' &&
-                   obj.class !== 'resize-handle';
+            return obj.id !== 'drawingArea' &&
+                obj.id !== 'watermark' &&
+                obj.class !== 'resize-handle';
         });
-        
+
         if (objectsToRemove.length > 0) {
             objectsToRemove.forEach(obj => {
                 fabricCanvas.remove(obj);
@@ -1508,7 +1516,7 @@ function removeSelectedObjects() {
             saveCanvasState();
         }
     } else {
-        if(activeObject.id === 'firstImage' || activeObject.id === 'secondImage'){
+        if (activeObject.id === 'firstImage' || activeObject.id === 'secondImage') {
             alert('Ainda não é possível remover as imagens principais porque não há como adicioná-las novamente.');
             return; // Não remove elementos essenciais
         }
@@ -1518,7 +1526,7 @@ function removeSelectedObjects() {
             activeObject.class === 'resize-handle') {
             return; // Não remove elementos essenciais
         }
-        
+
         // Remove o objeto único selecionado
         fabricCanvas.remove(activeObject);
         fabricCanvas.discardActiveObject();
@@ -1545,6 +1553,7 @@ function addDrawingAreaHandlers() {
         selectable: true,
         class: 'resize-handle',
         padding: 2,
+        excludeFromExport: true,
     };
 
     const leftHandle = new Rect({
@@ -1591,7 +1600,7 @@ function addDrawingAreaHandlers() {
         lockMovementX: true,
         hoverCursor: 'ns-resize',
     });
-    
+
     const topLeftHandle = new Path(`M 0 0 L ${cornerHandleSize} 0 L ${cornerHandleSize} ${cornerThickness} L ${cornerThickness} ${cornerThickness} L ${cornerThickness} ${cornerHandleSize} L 0 ${cornerHandleSize} Z`, {
         left: drawingArea.value.left - drawingArea.value.width / 2 + cornerHandleSize / 2 - cornerThickness / 2,
         top: drawingArea.value.top - drawingArea.value.height / 2 + cornerHandleSize / 2 - cornerThickness / 2,
@@ -1670,208 +1679,207 @@ function addDrawingAreaHandlers() {
  * Anima o zoom suavemente de um valor para outro
  */
 function animateZoom(startZoom, endZoom, duration = 300, centerPoint = null) {
-  return new Promise((resolve) => {
-    const startTime = performance.now();
-    
-    const animate = (currentTime) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Função de easing (ease-out)
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      
-      const currentZoom = startZoom + (endZoom - startZoom) * easeProgress;
-      
-      if (centerPoint) {
-        fabricCanvas.zoomToPoint(centerPoint, currentZoom);
-      } else {
-        fabricCanvas.setZoom(currentZoom);
-      }
-      
-      zoomLevel.value = currentZoom;
-      
-      fabricCanvas.requestRenderAll();
+    return new Promise((resolve) => {
+        const startTime = performance.now();
 
-      if (progress < 1) {
+        const animate = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Função de easing (ease-out)
+            const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+            const currentZoom = startZoom + (endZoom - startZoom) * easeProgress;
+
+            if (centerPoint) {
+                fabricCanvas.zoomToPoint(centerPoint, currentZoom);
+            } else {
+                fabricCanvas.setZoom(currentZoom);
+            }
+
+            zoomLevel.value = currentZoom;
+
+            fabricCanvas.requestRenderAll();
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                resolve();
+            }
+        };
+
         requestAnimationFrame(animate);
-      } else {
-        resolve();
-      }
-    };
-    
-    requestAnimationFrame(animate);
-  });
+    });
 }
 
 /**
  * Anima a transformação do viewport suavemente
  */
 function animateViewportTransform(startTransform, endTransform, duration = 300) {
-  return new Promise((resolve) => {
-    const startTime = performance.now();
-    
-    const animate = (currentTime) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Função de easing (ease-out)
-      const easeProgress = 1 - Math.pow(1 - progress, 3);
-      
-      const currentTransform = startTransform.map((start, index) => {
-        const end = endTransform[index];
-        return start + (end - start) * easeProgress;
-      });
-      
-      fabricCanvas.viewportTransform = currentTransform;
-      fabricCanvas.requestRenderAll();
-      
-      if (progress < 1) {
+    return new Promise((resolve) => {
+        const startTime = performance.now();
+
+        const animate = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            // Função de easing (ease-out)
+            const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+            const currentTransform = startTransform.map((start, index) => {
+                const end = endTransform[index];
+                return start + (end - start) * easeProgress;
+            });
+
+            fabricCanvas.viewportTransform = currentTransform;
+            fabricCanvas.requestRenderAll();
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                resolve();
+            }
+        };
+
         requestAnimationFrame(animate);
-      } else {
-        resolve();
-      }
-    };
-    
-    requestAnimationFrame(animate);
-  });
+    });
 }
 
 /**
  * Define os limites mínimo e máximo de zoom
  */
 function setZoomLimits(min, max) {
-  if (min > 0 && max > min) {
-    minZoom.value = min;
-    maxZoom.value = max;
-    
-    // Garante que o zoom atual esteja dentro dos novos limites
-    const currentZoom = fabricCanvas.getZoom();
-    if (currentZoom < min || currentZoom > max) {
-      const newZoom = Math.min(Math.max(currentZoom, min), max);
-      fabricCanvas.setZoom(newZoom);
-      zoomLevel.value = newZoom;
-      fabricCanvas.requestRenderAll();
+    if (min > 0 && max > min) {
+        minZoom.value = min;
+        maxZoom.value = max;
+
+        // Garante que o zoom atual esteja dentro dos novos limites
+        const currentZoom = fabricCanvas.getZoom();
+        if (currentZoom < min || currentZoom > max) {
+            const newZoom = Math.min(Math.max(currentZoom, min), max);
+            fabricCanvas.setZoom(newZoom);
+            zoomLevel.value = newZoom;
+            fabricCanvas.requestRenderAll();
+        }
     }
-  }
 }
 
 /**
  * Define o nível de zoom diretamente com animação suave
  */
 async function setZoom(level, animate = true) {
-  const targetZoom = Math.min(Math.max(level, minZoom.value), maxZoom.value);
-  const currentZoom = fabricCanvas.getZoom();
+    const targetZoom = Math.min(Math.max(level, minZoom.value), maxZoom.value);
+    const currentZoom = fabricCanvas.getZoom();
 
-  if (animate && targetZoom !== currentZoom) {
-    await animateZoom(currentZoom, targetZoom, 300);
-  } else {
-    fabricCanvas.setZoom(targetZoom);
-    zoomLevel.value = targetZoom;
-    fabricCanvas.requestRenderAll();
-  }
+    if (animate && targetZoom !== currentZoom) {
+        await animateZoom(currentZoom, targetZoom, 300);
+    } else {
+        fabricCanvas.setZoom(targetZoom);
+        zoomLevel.value = targetZoom;
+        fabricCanvas.requestRenderAll();
+    }
 }
 
 /**
  * Reseta o zoom para 1x (100%) e centraliza o canvas com animação suave
  */
 async function resetZoom() {
-  const targetZoom = Math.min(Math.max(1, minZoom.value), maxZoom.value);
-  const currentZoom = fabricCanvas.getZoom();
-  const currentTransform = [...fabricCanvas.viewportTransform];
-  const targetTransform = [1, 0, 0, 1, 0, 0];
-  
-  // Anima o zoom e o viewport em paralelo
-  await Promise.all([
-    animateZoom(currentZoom, targetZoom, 400),
-    animateViewportTransform(currentTransform, targetTransform, 400)
-  ]);
+    const targetZoom = Math.min(Math.max(1, minZoom.value), maxZoom.value);
+    const currentZoom = fabricCanvas.getZoom();
+    const currentTransform = [...fabricCanvas.viewportTransform];
+    const targetTransform = [1, 0, 0, 1, 0, 0];
+
+    // Anima o zoom e o viewport em paralelo
+    await Promise.all([
+        animateZoom(currentZoom, targetZoom, 400),
+        animateViewportTransform(currentTransform, targetTransform, 400)
+    ]);
 }
 
 /**
  * Faz zoom in (aumenta o zoom) com animação suave
  */
 async function zoomIn(factor = 1.2) {
-  const currentZoom = fabricCanvas.getZoom();
-  const newZoom = Math.min(currentZoom * factor, maxZoom.value);
-  
-  if (newZoom !== currentZoom) {
-    await animateZoom(currentZoom, newZoom, 250);
-  }
+    const currentZoom = fabricCanvas.getZoom();
+    const newZoom = Math.min(currentZoom * factor, maxZoom.value);
+
+    if (newZoom !== currentZoom) {
+        await animateZoom(currentZoom, newZoom, 250);
+    }
 }
 
 /**
  * Faz zoom out (diminui o zoom) com animação suave
  */
 async function zoomOut(factor = 1.2) {
-  const currentZoom = fabricCanvas.getZoom();
-  const newZoom = Math.max(currentZoom / factor, minZoom.value);
-  
-  if (newZoom !== currentZoom) {
-    await animateZoom(currentZoom, newZoom, 250);
-  }
+    const currentZoom = fabricCanvas.getZoom();
+    const newZoom = Math.max(currentZoom / factor, minZoom.value);
+
+    if (newZoom !== currentZoom) {
+        await animateZoom(currentZoom, newZoom, 250);
+    }
 }
 
 /**
  * Ajusta o zoom para caber todo o conteúdo no canvas com animação suave
  */
 async function fitToCanvas() {
-if (!firstImage.value || !secondImage.value) return;
-console.log('fitToCanvas');
+    if (!firstImage.value || !secondImage.value) return;
 
-  const canvasWidth = fabricCanvas.getWidth();
-  const canvasHeight = fabricCanvas.getHeight();
+    const canvasWidth = fabricCanvas.getWidth();
+    const canvasHeight = fabricCanvas.getHeight();
 
-  
 
-  // Calcula o zoom necessário para caber as duas imagens
-  const totalImageWidth = firstImage.value.getScaledWidth() + secondImage.value.getScaledWidth();
-  const maxImageHeight = Math.max(firstImage.value.getScaledHeight(), secondImage.value.getScaledHeight());
-  
-  const scaleX = canvasWidth / totalImageWidth;
-  const scaleY = canvasHeight / maxImageHeight;
-  const targetZoom = Math.min(Math.max(Math.min(scaleX, scaleY), minZoom.value), maxZoom.value);
+    // Calcula o zoom necessário para caber as duas imagens
+    const totalImageWidth = firstImage.value.getScaledWidth() + secondImage.value.getScaledWidth();
+    const maxImageHeight = Math.max(firstImage.value.getScaledHeight(), secondImage.value.getScaledHeight());
 
-  const currentZoom = fabricCanvas.getZoom();
-  const currentTransform = [...fabricCanvas.viewportTransform];
-  const targetTransform = [1, 0, 0, 1, 0, 0];
-  
-  // Anima o zoom e reseta o viewport
-  await Promise.all([
-    animateZoom(currentZoom, targetZoom, 500),
-    animateViewportTransform(currentTransform, targetTransform, 500)
-  ]);
-  
-  // Atualiza a área de desenho após ajustar o zoom
-  addDrawingArea();
+    const scaleX = canvasWidth / totalImageWidth;
+    const scaleY = canvasHeight / maxImageHeight;
+    const targetZoom = Math.min(Math.max(Math.min(scaleX, scaleY), minZoom.value), maxZoom.value);
+
+    const currentZoom = fabricCanvas.getZoom();
+    const currentTransform = [...fabricCanvas.viewportTransform];
+    const targetTransform = [1, 0, 0, 1, 0, 0];
+
+    // Anima o zoom e reseta o viewport
+    await Promise.all([
+        animateZoom(currentZoom, targetZoom, 500),
+        animateViewportTransform(currentTransform, targetTransform, 500)
+    ]);
+
+    // Atualiza a área de desenho após ajustar o zoom
+    addDrawingArea();
 }
 
 function createText(x, y) {
     const text = new IText('Digite aqui...', {
         left: x,
         top: y,
-        // fontSize: textFontSize.value,
-        // fontFamily: textFontFamily.value,
-        // fill: textColor.value,
-        // fontWeight: textIsBold.value ? 'bold' : 'normal',
-        // fontStyle: textIsItalic.value ? 'italic' : 'normal',
-        // underline: textIsUnderline.value,
-        // editable: true,
-        // cornerColor: '#4285f4',
-        // cornerStyle: 'circle',
-        // transparentCorners: false,
-        // cornerSize: 8,
-        // rotatingPointOffset: 40,
-        // opacity: objectOpacity.value,
-        // strokeWidth: baseStrokeWidth.value * objectStrokeWidthMultiplier.value,
+        fontSize: textFontSize.value,
+        fontFamily: textFontFamily.value,
+        fill: textColor.value,
+        fontWeight: textIsBold.value ? 'bold' : 'normal',
+        fontStyle: textIsItalic.value ? 'italic' : 'normal',
+        underline: textIsUnderline.value,
+        editable: true,
+        cornerColor: '#4285f4',
+        cornerStyle: 'circle',
+        transparentCorners: false,
+        cornerSize: 8,
+        rotatingPointOffset: 40,
+        opacity: objectOpacity.value,
+        strokeWidth: baseStrokeWidth.value * objectStrokeWidthMultiplier.value,
     });
 
     fabricCanvas.add(text);
     fabricCanvas.setActiveObject(text);
     fabricCanvas.renderAll();
-    
+
     // Entra em modo de edição automaticamente
     text.enterEditing();
     text.selectAll();
+    applyStyleToControls(text);
 
     saveCanvasState();
 }
@@ -1883,11 +1891,11 @@ function isSelectableObject(obj) {
     // Exclui objetos essenciais do sistema
     const excludedIds = ['drawingArea', 'watermark'];
     const excludedClasses = ['resize-handle'];
-    
-    return obj && 
-           obj.selectable && 
-           !excludedIds.includes(obj.id) && 
-           !excludedClasses.includes(obj.class);
+
+    return obj &&
+        obj.selectable &&
+        !excludedIds?.includes(obj.id) &&
+        !excludedClasses?.includes(obj.class);
 }
 
 async function setHoverState(target) {
@@ -1895,9 +1903,9 @@ async function setHoverState(target) {
     if (target && isSelectableObject(target)) {
         // Só aplica hover se o objeto não estiver já selecionado
         const activeObject = fabricCanvas.getActiveObject();
-        const isCurrentlySelected = activeObject === target || 
+        const isCurrentlySelected = activeObject === target ||
             (activeObject?.type === 'activeSelection' && activeObject.contains(target));
-        
+
         if (!isCurrentlySelected) {
             // // Salva o estado original das bordas se ainda não foi salvo
             // if (!target._originalBorderState) {
@@ -1907,7 +1915,7 @@ async function setHoverState(target) {
             //         borderWidth: target.borderWidth
             //     };
             // }
-            
+
             // // Aplica o estilo de hover
             // target.set({
             //     borderColor: '#007ACC', // Cor azul para hover
@@ -1980,7 +1988,6 @@ async function setHoverState(target) {
  */
 function clearAllHoverStates() {
     fabricCanvas.getObjects().forEach(obj => {
-        // if obj.id includes '-hover', remove it
         if (obj.id && obj.id.includes('-hover')) {
             fabricCanvas.remove(obj);
         } else if (obj.class === 'resize-handle') {
@@ -2001,12 +2008,12 @@ function setupFabricEvents() {
     fabricCanvas.on('mouse:wheel', function (opt) {
         const delta = opt.e.deltaY;
         const currentZoom = fabricCanvas.getZoom();
-        
+
         // Calcula o novo nível de zoom com incrementos mais suaves
         const zoomStep = delta > 0 ? 0.9 : 1.1;
         let newZoom = currentZoom * zoomStep;
         newZoom = Math.min(Math.max(newZoom, minZoom.value), maxZoom.value);
-        
+
         // Se o zoom não mudou (limite atingido), não faz nada
         if (newZoom === currentZoom) {
             opt.e.preventDefault();
@@ -2018,26 +2025,26 @@ function setupFabricEvents() {
         const canvasRect = fabricCanvas.upperCanvasEl.getBoundingClientRect();
         const mouseX = opt.e.clientX - canvasRect.left;
         const mouseY = opt.e.clientY - canvasRect.top;
-        
+
         // Converte para coordenadas do world space (canvas coordinates)
         const vpt = fabricCanvas.viewportTransform;
         const worldX = (mouseX - vpt[4]) / vpt[0];
         const worldY = (mouseY - vpt[5]) / vpt[3];
-        
+
         // Calcula o novo viewport transform para manter o ponto sob o mouse fixo
         const newVpt = [...vpt];
-        
+
         // Atualiza a escala
         newVpt[0] = newZoom;
         newVpt[3] = newZoom;
-        
+
         // Ajusta a translação para manter o ponto sob o mouse na mesma posição na tela
         newVpt[4] = mouseX - worldX * newZoom;
         newVpt[5] = mouseY - worldY * newZoom;
-        
+
         // Aplica a transformação
         fabricCanvas.setViewportTransform(newVpt);
-        
+
         zoomLevel.value = newZoom;
 
         opt.e.preventDefault();
@@ -2060,7 +2067,7 @@ function setupFabricEvents() {
 
     fabricCanvas.on('text:editing:exited', function () {
         activeTool.value = 'select';
-        
+
         fabricCanvas.isDrawingMode = false;
         fabricCanvas.selection = true; // Permite selecionar textos existentes
         fabricCanvas.defaultCursor = 'default';
@@ -2143,13 +2150,13 @@ function setupFabricEvents() {
             return;
         }
 
-        if ( activeTool.value === 'line' ) {
+        if (activeTool.value === 'line') {
             isDrawingLine.value = true;
             const pointer = fabricCanvas.getPointer(evt);
             const points = [
                 { x: pointer.x, y: pointer.y },
             ];
-            line = new Polyline( points, {
+            line = new Polyline(points, {
                 left: pointer.x,
                 top: pointer.y,
                 fill: null,
@@ -2161,28 +2168,28 @@ function setupFabricEvents() {
                 id: `line-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
                 perPixelTargetFind: true,
             });
-            
-            fabricCanvas.add( line );
+
+            fabricCanvas.add(line);
             return;
         }
-        
+
         // Funcionalidade de texto - criar texto no clique
         if (activeTool.value === 'text') {
             // Verifica se já existe um texto em modo de edição
-            const editingText = fabricCanvas.getObjects().find(obj => 
+            const editingText = fabricCanvas.getObjects().find(obj =>
                 obj.type === 'i-text' && obj.isEditing,
             );
-            
+
             // Se já existe um texto sendo editado, não cria um novo
             if (editingText) {
                 return;
             }
-            
+
             const pointer = fabricCanvas.getPointer(evt);
             createText(pointer.x, pointer.y);
             return;
         }
-        
+
         // Pan com botão do meio do mouse (button 1) ou Alt + clique esquerdo ou zoom > 1
         if (evt.button === 1 || evt.altKey === true) {
             isDragging = true;
@@ -2211,14 +2218,14 @@ function setupFabricEvents() {
 
         if (isDrawingRect.value) {
             const pointer = fabricCanvas.getPointer(opt.e);
-            
-            if(origX > pointer.x){
+
+            if (origX > pointer.x) {
                 rect.set({ left: Math.abs(pointer.x) });
             }
-            if(origY > pointer.y){
+            if (origY > pointer.y) {
                 rect.set({ top: Math.abs(pointer.y) });
             }
-            
+
             rect.set({ width: Math.abs(origX - pointer.x) });
             rect.set({ height: Math.abs(origY - pointer.y) });
         }
@@ -2235,14 +2242,14 @@ function setupFabricEvents() {
 
         if (isDrawingTriangle.value) {
             const pointer = fabricCanvas.getPointer(opt.e);
-            
-            if(origX > pointer.x){
+
+            if (origX > pointer.x) {
                 triangle.set({ left: Math.abs(pointer.x) });
             }
-            if(origY > pointer.y){
+            if (origY > pointer.y) {
                 triangle.set({ top: Math.abs(pointer.y) });
             }
-            
+
             triangle.set({ width: Math.abs(origX - pointer.x) });
             triangle.set({ height: Math.abs(origY - pointer.y) });
         }
@@ -2263,7 +2270,7 @@ function setupFabricEvents() {
                 }, newPoint
             ]
 
-            const newLine = new Polyline( newPoints, {
+            const newLine = new Polyline(newPoints, {
                 left: Math.min(points[0].x, newPoint.x),
                 top: Math.min(points[0].y, newPoint.y),
                 strokeWidth: line.strokeWidth,
@@ -2273,14 +2280,14 @@ function setupFabricEvents() {
                 evented: false,
                 id: line.id,
                 perPixelTargetFind: line.perPixelTargetFind,
-            });            
+            });
 
             fabricCanvas.remove(line);
             line = newLine;
             fabricCanvas.add(line);
             line.setCoords();
         }
-        
+
         fabricCanvas.renderAll();
     });
 
@@ -2339,7 +2346,7 @@ function setupFabricEvents() {
 
     fabricCanvas.on('mouse:over', async function (opt) {
         const target = opt.target;
-        
+
         // Lógica para resize handles
         if (target?.class === 'resize-handle') {
             if (['topLeftHandle', 'topRightHandle', 'bottomLeftHandle', 'bottomRightHandle'].includes(target.id)) {
@@ -2351,13 +2358,13 @@ function setupFabricEvents() {
             fabricCanvas.requestRenderAll();
             return;
         }
-        
+
         setHoverState(target);
     });
 
     fabricCanvas.on('mouse:out', function (opt) {
         const target = opt.target;
-        
+
         // Lógica para resize handles
         if (target?.class === 'resize-handle') {
             // revert object's fill color when not hovering
@@ -2369,10 +2376,10 @@ function setupFabricEvents() {
             fabricCanvas.requestRenderAll();
             return;
         }
-        
+
         // Lógica para objetos selecionáveis (remover hover highlight)
         if (target && isSelectableObject(target)) {
-            
+
             // if (!isCurrentlySelected) {
             //     Restaura o estado original das bordas
             //     target.set({
@@ -2380,7 +2387,7 @@ function setupFabricEvents() {
             //         hasBorders: target._originalBorderState.hasBorders,
             //         borderWidth: target._originalBorderState.borderWidth
             //     });
-                
+
             //     // Remove o estado salvo
             //     delete target._originalBorderState;
 
@@ -2389,7 +2396,7 @@ function setupFabricEvents() {
             if (hoverClone) {
                 fabricCanvas.remove(hoverClone);
             }
-    
+
             fabricCanvas.requestRenderAll();
         }
     });
@@ -2405,12 +2412,12 @@ function setupFabricEvents() {
             e.preventDefault();
         }
     });
-    
+
     // Adiciona listener para manter as imagens centralizadas quando movidas
-    fabricCanvas.on('object:moving', function(e) {
+    fabricCanvas.on('object:moving', function (e) {
         const obj = e.target;
         const objects = fabricCanvas.getObjects();
-        
+
         if (obj === firstImage.value || obj === secondImage.value) {
             // Marca que a imagem foi movida manualmente; não recentraliza automaticamente
             obj.isManuallyMoved = true;
@@ -2430,15 +2437,15 @@ function setupFabricEvents() {
                     drawingAreaWidth.value = Math.round(newWidth);
                 }
 
-                if(obj.id === 'leftHandle') {
+                if (obj.id === 'leftHandle') {
                     const rightHandle = objects.find(o => o.id === 'rightHandle');
 
-                    
+
                     if (rightHandle) {
                         rightHandle.set({ left: drawingAreaObj.left + (drawingAreaObj.width / 2) });
                         rightHandle.setCoords();
                     }
-                    
+
                     topLeftHandle?.set({
                         left: obj.left + topLeftHandle.width / 2 - cornerThickness / 2,
                     });
@@ -2488,13 +2495,13 @@ function setupFabricEvents() {
             }
 
             if (obj.id === 'topHandle' || obj.id === 'bottomHandle') {
-                
+
                 if (drawingAreaObj) {
                     const newHeight = Math.abs(obj.top - drawingAreaObj.top) * 2;
                     drawingAreaHeight.value = Math.round(newHeight);
                 }
 
-                if(obj.id === 'topHandle') {
+                if (obj.id === 'topHandle') {
                     const bottomHandle = objects.find(o => o.id === 'bottomHandle');
                     // adjust bottom handle position
                     if (bottomHandle) {
@@ -2549,13 +2556,13 @@ function setupFabricEvents() {
             }
 
             // Handlers dos cantos para redimensionamento diagonal
-            if (obj.id === 'topLeftHandle' || obj.id === 'topRightHandle' || 
+            if (obj.id === 'topLeftHandle' || obj.id === 'topRightHandle' ||
                 obj.id === 'bottomLeftHandle' || obj.id === 'bottomRightHandle'
             ) {
-                
+
                 if (drawingAreaObj) {
                     let newWidth, newHeight;
-                    
+
                     if (obj.id === 'topLeftHandle') {
                         newWidth = Math.abs(drawingAreaObj.left - obj.left + obj.width / 2 - cornerThickness / 2) * 2;
                         newHeight = Math.abs(drawingAreaObj.top - obj.top + obj.height / 2 - cornerThickness / 2) * 2;
@@ -2569,10 +2576,10 @@ function setupFabricEvents() {
                         newWidth = Math.abs(obj.left - drawingAreaObj.left + obj.width / 2 - cornerThickness / 2) * 2;
                         newHeight = Math.abs(obj.top - drawingAreaObj.top + obj.height / 2 - cornerThickness / 2) * 2;
                     }
-                    
+
                     drawingAreaWidth.value = Math.round(newWidth);
                     drawingAreaHeight.value = Math.round(newHeight);
-                    
+
                     // Atualiza posições de todos os outros handlers
                     const handles = {
                         left: objects.find(o => o.id === 'leftHandle'),
@@ -2584,37 +2591,37 @@ function setupFabricEvents() {
                         bottomLeft: objects.find(o => o.id === 'bottomLeftHandle'),
                         bottomRight: objects.find(o => o.id === 'bottomRightHandle')
                     };
-                    
+
                     // Atualiza handlers laterais
                     if (handles.left) {
-                        handles.left.set({ 
+                        handles.left.set({
                             left: drawingAreaObj.left - drawingAreaObj.width / 2,
                             height: drawingAreaObj.height - 90
                         });
                         handles.left.setCoords();
                     }
                     if (handles.right) {
-                        handles.right.set({ 
+                        handles.right.set({
                             left: drawingAreaObj.left + drawingAreaObj.width / 2,
                             height: drawingAreaObj.height - 90
                         });
                         handles.right.setCoords();
                     }
                     if (handles.top) {
-                        handles.top.set({ 
+                        handles.top.set({
                             top: drawingAreaObj.top - drawingAreaObj.height / 2,
                             width: drawingAreaObj.width - 90
                         });
                         handles.top.setCoords();
                     }
                     if (handles.bottom) {
-                        handles.bottom.set({ 
+                        handles.bottom.set({
                             top: drawingAreaObj.top + drawingAreaObj.height / 2,
                             width: drawingAreaObj.width - 90
                         });
                         handles.bottom.setCoords();
                     }
-                    
+
                     // Atualiza outros handlers dos cantos
                     Object.entries(handles).forEach(([key, handle]) => {
                         if (handle && handle !== obj) {
@@ -2659,53 +2666,71 @@ function setupFabricEvents() {
 function centerImagesInClipPaths() {
     if (!firstImage.value || !secondImage.value || !firstClipPath.value || !secondClipPath.value) return;
 
-    const canvasWidth = fabricCanvas.getWidth();
-    const canvasHeight = fabricCanvas.getHeight();
+    // const firstClipPathObj = fabricCanvas.getObjects().find(obj => obj.id === 'firstClipPath');
+    // const secondClipPathObj = fabricCanvas.getObjects().find(obj => obj.id === 'secondClipPath');
 
-    // Área do primeiro clipPath (metade esquerda)
-    const leftClipWidth = canvasWidth / 2;
-    const leftClipHeight = canvasHeight;
-    
-    // Área do segundo clipPath (metade direita)  
-    const rightClipWidth = canvasWidth / 2;
-    const rightClipHeight = canvasHeight;
-    
-    // Centraliza a primeira imagem EXATAMENTE no centro da metade esquerda
-    const img1ScaledWidth = firstImage.value.getScaledWidth();
-    const img1ScaledHeight = firstImage.value.getScaledHeight();
-    const img1CenterX = (leftClipWidth - img1ScaledWidth) / 2;
-    const img1CenterY = (leftClipHeight - img1ScaledHeight) / 2;
-    
+    // const firstClipWidth = firstClipPathObj ? firstClipPathObj.width : 0;
+    // const firstClipHeight = firstClipPathObj ? firstClipPathObj.height : 0
+
+    // // Centraliza a primeira imagem EXATAMENTE no centro da metade esquerda
+    // const img1ScaledWidth = firstImage.value.getScaledWidth();
+    // const img1ScaledHeight = firstImage.value.getScaledHeight();
+    // const img1CenterX = (firstClipWidth - img1ScaledWidth) / 2;
+    // const img1CenterY = (firstClipHeight - img1ScaledHeight) / 2;
+
+    // firstImage.value.set({
+    //     left: img1CenterX,
+    //     top: img1CenterY
+    // });
+
+    // // Centraliza a segunda imagem EXATAMENTE no centro da metade direita
+    // const img2ScaledWidth = secondImage.value.getScaledWidth();
+    // const img2ScaledHeight = secondImage.value.getScaledHeight();
+    // const img2CenterX = firstClipWidth + (secondClipPathObj ? secondClipPathObj.left : 0) + (secondClipPathObj ? secondClipPathObj.width : 0 - img2ScaledWidth) / 2;
+    // const img2CenterY = (secondClipPathObj ? secondClipPathObj.top : 0) + (secondClipPathObj ? secondClipPathObj.height : 0 - img2ScaledHeight) / 2;
+
+    // secondImage.value.set({
+    //     left: img2CenterX,
+    //     top: img2CenterY
+    // });
+
+    // fabricCanvas.renderAll();
+
+
+
+
+
+    const firstClipPathObj = firstImage.value.clipPath;
+    const secondClipPathObj = secondImage.value.clipPath;
+
     firstImage.value.set({
-        left: img1CenterX,
-        top: img1CenterY
-    });
-    
-    // Centraliza a segunda imagem EXATAMENTE no centro da metade direita
-    const img2ScaledWidth = secondImage.value.getScaledWidth();
-    const img2ScaledHeight = secondImage.value.getScaledHeight();
-    const img2CenterX = (canvasWidth / 2) + (rightClipWidth - img2ScaledWidth) / 2;
-    const img2CenterY = (rightClipHeight - img2ScaledHeight) / 2;
-    
-    secondImage.value.set({
-        left: img2CenterX,
-        top: img2CenterY
+        left: firstClipPathObj.left,
+        top: firstClipPathObj.top
     });
 
-    fabricCanvas.renderAll();
+    secondImage.value.set({
+        left: secondClipPathObj.left,
+        top: secondClipPathObj.top
+    });
+
+    firstImage.value.setCoords();
+    secondImage.value.setCoords();
+
+    fabricCanvas.requestRenderAll();
 }
 
-function addClipPaths() {
-    // clips paths must be one on left and one on right. They must be rectangles that touch in the middle
+async function addClipPaths() {
     if (firstImage.value && secondImage.value) {
-        const canvasWidth = fabricCanvas.getWidth();
-        const canvasHeight = fabricCanvas.getHeight();
+
+        const firstImageObj = fabricCanvas.getObjects().find(obj => obj.id === 'firstImage');
+        const secondImageObj = fabricCanvas.getObjects().find(obj => obj.id === 'secondImage');
+
+        const totalImageWidth = (firstImageObj ? firstImageObj.getScaledWidth() : 0) + (secondImageObj ? secondImageObj.getScaledWidth() : 0);
+        const maxImageHeight = Math.max(firstImageObj ? firstImageObj.getScaledHeight() : 0, secondImageObj ? secondImageObj.getScaledHeight() : 0);
 
         const clipPath1 = new Rect({
-            left: 0,
-            top: 0,
-            width: canvasWidth / 2,
-            height: canvasHeight,
+            width: totalImageWidth / 2,
+            height: maxImageHeight,
             absolutePositioned: true,
             selectable: false,
             evented: false,
@@ -2713,12 +2738,10 @@ function addClipPaths() {
             fill: 'red',
             id: 'firstClipPath',
         });
-        
+
         const clipPath2 = new Rect({
-            left: canvasWidth / 2,
-            top: 0,
-            width: canvasWidth / 2,
-            height: canvasHeight,
+            width: totalImageWidth / 2,
+            height: maxImageHeight,
             absolutePositioned: true,
             selectable: false,
             evented: false,
@@ -2737,12 +2760,12 @@ function addClipPaths() {
 
         firstClipPath.value = clipPath1;
         secondClipPath.value = clipPath2;
-        
+
         // Centraliza as imagens dentro de seus clipPaths
-        centerImagesInClipPaths();
-        
+
         // Adiciona a área de desenho após criar os clipPaths
-        addDrawingArea();
+        await addDrawingArea();
+        await centerImagesInClipPaths();
     }
 }
 
@@ -2782,7 +2805,7 @@ async function loadImages() {
             id: 'firstImage',
             isManuallyMoved: false,
         });
-        
+
         imgRight.set({
             id: 'secondImage',
             isManuallyMoved: false,
@@ -2805,21 +2828,17 @@ async function loadImages() {
 
         // Adiciona as imagens ao canvas.
         // O Fabric trata cada item como um objeto que pode ser movido, rotacionado, etc.
-        fabricCanvas.add(imgLeft.set({ 
-            left: 0, 
-            top: 0, 
-            evented: true, 
-            selectable: true, 
+        fabricCanvas.add(imgLeft.set({
+            evented: true,
+            selectable: true,
             centeredScaling: true,
             lockRotation: true,
             lockScalingFlip: true,
             strokeUniform: true,
         }));
-        fabricCanvas.add(imgRight.set({ 
-            left: imgLeft.width * scale, 
-            top: 0, 
-            evented: true, 
-            selectable: true, 
+        fabricCanvas.add(imgRight.set({
+            evented: true,
+            selectable: true,
             centeredScaling: true,
             lockRotation: true,
             lockScalingFlip: true,
@@ -2843,10 +2862,10 @@ async function loadImages() {
     });
 }
 
-function adjustCanvasSize() {
+async function adjustCanvasSize() {
     if (fabricCanvas) {
         const container = canvasWrapper.value;
-        
+
         if (container) {
             const containerWidth = container.clientWidth;
             const containerHeight = container.clientHeight;
@@ -2858,9 +2877,9 @@ function adjustCanvasSize() {
             });
 
             fabricCanvas.renderAll();
-            
+
             // Atualiza a área de desenho após redimensionar
-            addDrawingArea();
+            await addDrawingArea();
         }
     }
 }
@@ -2928,10 +2947,10 @@ function activateTextMode() {
 }
 
 function setActiveTool(tool) {
-    if( tool !== activeTool.value ) {
+    if (tool !== activeTool.value) {
         fabricCanvas.discardActiveObject();
     }
-    
+
     activeTool.value = tool;
 
     // Reseta para o padrão: seleção ativa, modo de desenho desativado
@@ -2944,7 +2963,7 @@ function setActiveTool(tool) {
         case 'select':
             activateSelectionMode();
             break;
-        
+
         case 'draw':
             // Ativa o modo de desenho livre
             fabricCanvas.isDrawingMode = true;
@@ -2962,7 +2981,7 @@ function setActiveTool(tool) {
             fabricCanvas.defaultCursor = 'crosshair';
             fabricCanvas.hoverCursor = 'crosshair';
             break;
-        
+
         case 'circle':
             // Desativa o modo de desenho, mas permite seleção para modificar o círculo
             fabricCanvas.isDrawingMode = false;
@@ -3034,23 +3053,30 @@ async function addWatermark() {
     }
 
     await Promise.all([
-        FabricImage.fromURL(watermarkImage, { crossOrigin: 'anonymous' })
+        FabricImage.fromURL(logoSettings.value.url, { crossOrigin: 'anonymous' })
     ]).then(([watermarkObj]) => {
         watermarkObj.set({
-            opacity: 0.6,
+            opacity: logoSettings.value.opacity ? parseFloat(logoSettings.value.opacity) : 1,
             selectable: false,
             evented: false,
+            excludeFromExport: false,
             hoverCursor: 'default',
             id: 'watermark',
+            scaleX: logoSettings.value.scale ? parseFloat(logoSettings.value.scale) : 0.2,
+            scaleY: logoSettings.value.scale ? parseFloat(logoSettings.value.scale) : 0.2,
         });
+
+        console.log('Watermark added:', watermarkObj);
+        
 
         // Armazena a referência da marca d'água
         watermark.value = watermarkObj;
 
+        fabricCanvas.add(watermarkObj);
+        
         // Posiciona usando a função de viewport
         updateWatermarkPosition();
 
-        fabricCanvas.add(watermarkObj);
         fabricCanvas.bringObjectToFront(watermarkObj);
         fabricCanvas.requestRenderAll();
     });
@@ -3071,10 +3097,12 @@ async function toggleWatermark() {
  * Atualiza a posição da marca d'água para sempre ficar no canto inferior direito do drawingArea
  */
 function updateWatermarkPosition() {
+    console.log('Updating watermark position...');
+    
     if (!fabricCanvas || !watermark.value || !drawingArea.value) return;
-    
-    const margin = 10; // Margem reduzida para ficar dentro do drawingArea
-    
+
+    const margin = 20; // Margem reduzida para ficar dentro do drawingArea
+
     // Calcula as coordenadas do drawingArea (considerando que tem originX/Y: center)
     const drawingAreaWidth = drawingArea.value.width;
     const drawingAreaHeight = drawingArea.value.height;
@@ -3082,22 +3110,53 @@ function updateWatermarkPosition() {
     const drawingAreaTop = drawingArea.value.top - (drawingAreaHeight / 2);
     const drawingAreaRight = drawingAreaLeft + drawingAreaWidth;
     const drawingAreaBottom = drawingAreaTop + drawingAreaHeight;
-    
+
     // Posiciona a watermark no canto inferior direito do drawingArea
-    const watermarkWidth = watermark.value.width * (baseScale);
-    const watermarkHeight = watermark.value.height * (baseScale);
-    
-    const viewportX = drawingAreaRight - watermarkWidth - margin;
-    const viewportY = drawingAreaBottom - watermarkHeight - margin;
-    
+    const watermarkWidth = watermark.value.getScaledWidth();
+    const watermarkHeight = watermark.value.getScaledHeight();
+
+    let left = 0;
+    let top = 0;
+
+    switch (logoSettings.value.position) {
+        case 'top-left':
+            left = drawingAreaLeft + margin;
+            top = drawingAreaTop + margin;
+            break;
+        case 'top-right':
+            left = drawingAreaRight - watermarkWidth - margin;
+            top = drawingAreaTop + margin;
+            break;
+        case 'bottom-left':
+            left = drawingAreaLeft + margin;
+            top = drawingAreaBottom - watermarkHeight - margin;
+            break;
+        case 'center':
+            left = drawingAreaLeft + (drawingAreaWidth - watermarkWidth) / 2;
+            top = drawingAreaTop + (drawingAreaHeight - watermarkHeight) / 2;
+            break;
+        case 'top-center':
+            left = drawingAreaLeft + (drawingAreaWidth - watermarkWidth) / 2;
+            top = drawingAreaTop + margin;
+            break;
+        case 'bottom-center':
+            left = drawingAreaLeft + (drawingAreaWidth - watermarkWidth) / 2;
+            top = drawingAreaBottom - watermarkHeight - margin;
+            break;
+        case 'bottom-right':
+        default:
+            left = drawingAreaRight - watermarkWidth - margin;
+            top = drawingAreaBottom - watermarkHeight - margin;
+            break;
+    }
+
     // Atualiza posição e escala da marca d'água
     watermark.value.set({
-        left: viewportX,
-        top: viewportY,
-        scaleX: baseScale, // Compensa o zoom
-        scaleY: baseScale  // Compensa o zoom
+        left: left,
+        top: top,
+        opacity: logoSettings.value.opacity ? parseFloat(logoSettings.value.opacity) : 1,
     });
-    
+
     fabricCanvas.renderAll();
 }
 
@@ -3196,19 +3255,96 @@ function deleteActiveObject() {
     }
 }
 
+async function finishDrawing() {
+    finishing.value = true;
+    if (fabricCanvas && drawingArea) {
+        if (fabricCanvas.isDrawingMode) {
+            fabricCanvas.isDrawingMode = false;
+            fabricCanvas.selection = true; // Habilita seleção quando termina o desenho
+            fabricCanvas.requestRenderAll();
+            saveCanvasState();
+        }
+
+        // hide temporarely the drawing area and its handles
+        drawingArea.value.visible = false;
+        const handles = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle');
+        handles.forEach(handle => handle.visible = false);
+
+        // Remover todos os elementos de hover
+        const hoverObjects = fabricCanvas.getObjects().filter(o => o.id && o.id.endsWith('-hover'));
+        hoverObjects.forEach(obj => fabricCanvas.remove(obj));
+        fabricCanvas.discardActiveObject();
+        fabricCanvas.requestRenderAll();
+
+        const origVptTransform = Object.assign(
+            [],
+            fabricCanvas.viewportTransform
+        );
+        fabricCanvas.viewportTransform = [1, 0, 0, 1, 0, 0];
+        fabricCanvas.setViewportTransform(fabricCanvas.viewportTransform);
+
+        // bring watermark to front
+        if (watermark.value) {
+            fabricCanvas.bringObjectToFront(watermark.value);
+        }
+
+        fabricCanvas.requestRenderAll();
+
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Esperamos um segundo para garantir que o canvas foi redesenhado
+
+        const data = await new Promise((resolve, reject) => {
+            fabricCanvas
+                .toCanvasElement(
+                    1, {
+                    top: drawingArea.value.top - (drawingArea.value.getScaledHeight() / 2),
+                    left: drawingArea.value.left - (drawingArea.value.getScaledWidth() / 2),
+                    width: drawingArea.value.getScaledWidth(),
+                    height: drawingArea.value.getScaledHeight(),
+                })
+                .toBlob(
+                    (blob) => {
+                        if (blob) resolve(blob);
+                        else reject("Houve um erro ao gerar a imagem.");
+                    },
+                    "image/png",
+                    1
+                );
+        });
+
+        // reseta o viewport para o original
+        fabricCanvas.viewportTransform = origVptTransform;
+        fabricCanvas.setViewportTransform(fabricCanvas.viewportTransform);
+        fabricCanvas.renderAll();
+
+        emit('finished', data);
+
+        // after a short delay, show the drawing area and its handles again
+        if (drawingArea.value) {
+            drawingArea.value.visible = true;
+        }
+        handles.forEach(handle => handle.visible = true);
+        fabricCanvas.requestRenderAll();
+
+        setTimeout(() => {
+            finishing.value = false;
+            return data;
+        }, 100);
+    }
+}
+
 
 // Exposição de métodos para uso externo
 defineExpose({
-  setZoomLimits,
-  setZoom,
-  resetZoom,
-  zoomIn,
-  zoomOut,
-  fitToCanvas,
-  undo,
-  redo,
-  getZoomLevel: () => zoomLevel.value,
-  getZoomLimits: () => ({ min: minZoom.value, max: maxZoom.value })
+    setZoomLimits,
+    setZoom,
+    resetZoom,
+    zoomIn,
+    zoomOut,
+    fitToCanvas,
+    undo,
+    redo,
+    getZoomLevel: () => zoomLevel.value,
+    getZoomLimits: () => ({ min: minZoom.value, max: maxZoom.value })
 });
 
 </script>

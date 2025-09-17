@@ -11,8 +11,30 @@
       <image-annotator
         img-left-src="antes.png"
         img-right-src="depois.png"
+        logo-settings='{
+          "url": "logo-comprido-escuro.png", "position": "bottom-left", "scale": 0.2, "opacity": 1
+        }'
       ></image-annotator>
+      <div>
+        <img src="" id="resultado" alt="">
+      </div>
     </div>
     <script type="module" src="/src/main.js"></script>
-  </body>
+    <script>
+      const meuComponente = document.querySelector('image-annotator');
+
+      meuComponente.addEventListener('finished', (event) => {
+      // O objeto 'event' contém os dados que você enviou
+      console.log('Página HTML: Evento "finished" recebido!', event);
+
+      // Você pode acessar os dados através de 'event.detail'
+      const dadosRecebidos = event.detail[0];
+      
+      // Exemplo: Atualizar a imagem com o resultado recebido
+      const imagemResultado = document.getElementById('resultado');
+      imagemResultado.src = URL.createObjectURL(dadosRecebidos);
+      imagemResultado.alt = 'Imagem Anotada';
+    });
+  </script>
+</body>
 </html>

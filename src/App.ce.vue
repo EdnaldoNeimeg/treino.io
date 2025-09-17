@@ -2,7 +2,6 @@
     <div class="relative flex flex-col items-center justify-center h-full overflow-hidden">
         <div class="w-full absolute z-20 top-2 left-1/2 -translate-x-1/2 flex items-center justify-between px-2">
             <div class="">
-                {{ activeTool }}
             </div>
             <div class="grow flex items-center justify-center gap-4">
                 <div class="flex items-center justify-center gap-2">
@@ -152,7 +151,7 @@
             <div class="shrink">
                 <div class="bg-white rounded p-1 5 shadow-xl">
                     <button @click="toggleWatermark()"
-                        class="h-8 w-8 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
+                        class="h-8 w-8 flex flex-col items-center justify-center bg-slate-100 hover:bg-slate-200 text-black rounded transition-colors"
                         :class="{ 'bg-primary-500! text-white': showWatermark }">
                         <iconify-icon icon="mdi-light:bookmark" class="text-lg inline-block"></iconify-icon>
                     </button>
@@ -440,22 +439,21 @@
                     <canvas ref="canvasEl"></canvas>
                 </div>
                 <div
-                    class="absolute w-full flex items-center justify-between bottom-4 left-1/2 transform -translate-x-1/2">
+                    class="absolute pointer-events-none w-full flex items-center justify-between bottom-4 left-1/2 transform -translate-x-1/2">
                     <div class="grid grid-cols-2 md:grid-cols-3 w-full">
                         <div class="hidden md:flex pl-4 pb-6">
                             <div>
-
                             </div>
                         </div>
                         <div class="flex items-center justify-center gap-4">
                             <span
                                 class="border-2 bg-slate-200 border-slate-300 text-slate-500 rounded-lg flex items-center px-4 h-8 font-semibold"
-                                :class="{ 'bg-primary-500 text-white': altKeyPressed }">Alt +
+                                :class="{ 'bg-primary-500! text-white': altKeyPressed }">Alt +
                                 <iconify-icon icon="ph:mouse-left-click-fill"
                                     class="inline-block text-lg"></iconify-icon> =
                                 Mover
                             </span>
-                            <div class="flex items-center justify-center">
+                            <div class="flex items-center justify-center pointer-events-auto">
                                 <button @click="undo()" :disabled="undoStack.length <= 1"
                                     class="h-8 w-8 bg-slate-200 flex items-center justify-center border-2 border-r-0 border-slate-300 hover:bg-primary-500 hover:text-white text-black rounded-l-lg transition-colors">
                                     <iconify-icon icon="iconoir:undo" class="inline-block"></iconify-icon>
@@ -482,7 +480,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue';
 import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, IText, Circle, Triangle, Polyline, Point } from 'fabric'
 
 import { EraserBrush, ClippingGroup } from '@erase2d/fabric';
@@ -1800,11 +1798,15 @@ async function resetZoom() {
  * Faz zoom in (aumenta o zoom) com animação suave
  */
 async function zoomIn(factor = 1.2) {
+    console.log('zoomIn');
+    
     const currentZoom = fabricCanvas.getZoom();
     const newZoom = Math.min(currentZoom * factor, maxZoom.value);
 
     if (newZoom !== currentZoom) {
+        updateWatermarkPosition();
         await animateZoom(currentZoom, newZoom, 250);
+
     }
 }
 
@@ -1816,6 +1818,7 @@ async function zoomOut(factor = 1.2) {
     const newZoom = Math.max(currentZoom / factor, minZoom.value);
 
     if (newZoom !== currentZoom) {
+        updateWatermarkPosition();
         await animateZoom(currentZoom, newZoom, 250);
     }
 }
@@ -2046,6 +2049,8 @@ function setupFabricEvents() {
         fabricCanvas.setViewportTransform(newVpt);
 
         zoomLevel.value = newZoom;
+
+        updateWatermarkPosition();
 
         opt.e.preventDefault();
         opt.e.stopPropagation();
@@ -3043,12 +3048,8 @@ async function addWatermark() {
     const existingWatermark = fabricCanvas.getObjects().find(obj => obj.id === 'watermark');
     if (existingWatermark) {
         watermark.value = existingWatermark;
-        existingWatermark.set({
-            opacity: 0.6,
-        });
         fabricCanvas.bringObjectToFront(existingWatermark);
         updateWatermarkPosition();
-        fabricCanvas.requestRenderAll();
         return;
     }
 
@@ -3056,10 +3057,11 @@ async function addWatermark() {
         FabricImage.fromURL(logoSettings.value.url, { crossOrigin: 'anonymous' })
     ]).then(([watermarkObj]) => {
         watermarkObj.set({
+            includeDefaultValues: true,
             opacity: logoSettings.value.opacity ? parseFloat(logoSettings.value.opacity) : 1,
             selectable: false,
             evented: false,
-            excludeFromExport: false,
+            excludeFromExport: !showWatermark.value,
             hoverCursor: 'default',
             id: 'watermark',
             scaleX: logoSettings.value.scale ? parseFloat(logoSettings.value.scale) : 0.2,
@@ -3083,21 +3085,27 @@ async function addWatermark() {
 }
 
 async function toggleWatermark() {
+    
     showWatermark.value = !showWatermark.value;
+    
     if (showWatermark.value) {
         await addWatermark();
     } else {
-        // Remove a marca d'água
-        fabricCanvas.overlayImage = null;
-        fabricCanvas.requestRenderAll();
+        if (watermark.value && fabricCanvas) {
+            const existingWatermark = fabricCanvas.getObjects().find(obj => obj.id === 'watermark');
+            fabricCanvas.remove(existingWatermark);
+        }
     }
+
+    setTimeout(() => {
+        fabricCanvas.renderAll();
+    }, 1000);
 }
 
 /**
  * Atualiza a posição da marca d'água para sempre ficar no canto inferior direito do drawingArea
  */
 function updateWatermarkPosition() {
-    console.log('Updating watermark position...');
     
     if (!fabricCanvas || !watermark.value || !drawingArea.value) return;
 
@@ -3111,12 +3119,12 @@ function updateWatermarkPosition() {
     const drawingAreaRight = drawingAreaLeft + drawingAreaWidth;
     const drawingAreaBottom = drawingAreaTop + drawingAreaHeight;
 
-    // Posiciona a watermark no canto inferior direito do drawingArea
     const watermarkWidth = watermark.value.getScaledWidth();
     const watermarkHeight = watermark.value.getScaledHeight();
 
     let left = 0;
     let top = 0;
+
 
     switch (logoSettings.value.position) {
         case 'top-left':
@@ -3150,12 +3158,18 @@ function updateWatermarkPosition() {
             break;
     }
 
+    console.log(`left=${left}, top=${top}, position setting=${logoSettings.value.position}`);
+    
+
     // Atualiza posição e escala da marca d'água
     watermark.value.set({
         left: left,
         top: top,
-        opacity: logoSettings.value.opacity ? parseFloat(logoSettings.value.opacity) : 1,
+        visible: showWatermark.value,
+        excludeFromExport: !showWatermark.value,
+        // opacity: logoSettings.value.opacity ? parseFloat(logoSettings.value.opacity) : 1,
     });
+    watermark.value.setCoords();
 
     fabricCanvas.renderAll();
 }
@@ -3265,8 +3279,21 @@ async function finishDrawing() {
             saveCanvasState();
         }
 
+        if(showWatermark.value && watermark.value) {
+            const watermark = fabricCanvas.getObjects().find(obj => obj.id === 'watermark');
+            if (watermark) {
+                watermark.set({
+                    visible: true,
+                    excludeFromExport: false,
+                });
+                fabricCanvas.bringObjectToFront(watermark);
+            }
+        }
+
+        fabricCanvas.requestRenderAll();
+
         // hide temporarely the drawing area and its handles
-        drawingArea.value.visible = false;
+        // drawingArea.value.visible = false;
         const handles = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle');
         handles.forEach(handle => handle.visible = false);
 
@@ -3291,6 +3318,12 @@ async function finishDrawing() {
         fabricCanvas.requestRenderAll();
 
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Esperamos um segundo para garantir que o canvas foi redesenhado
+
+        // log check if watermark is visible
+        if (showWatermark.value && watermark.value) {
+            const watermark = fabricCanvas.getObjects().find(obj => obj.id === 'watermark');
+            console.log('Watermark visibility on export:', watermark ? watermark.visible : 'not found');
+        }
 
         const data = await new Promise((resolve, reject) => {
             fabricCanvas

@@ -584,6 +584,19 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal de Comparação -->
+        <Dialog 
+            :is-visible="showCompareModal"
+            dialog-id="compare"
+            title="Comparar Imagens"
+            @close="showCompareModal = false"
+        >
+            <Compare 
+                :first-image-src="props.imgLeftSrc"
+                :second-image-src="props.imgRightSrc"
+            />
+        </Dialog>
     </div>
 </template>
 
@@ -595,6 +608,8 @@ import { EraserBrush, ClippingGroup } from '@erase2d/fabric';
 
 import ColorSelector from '@/components/ColorSelector.vue';
 import Tooltip from './components/Tooltip.vue';
+import Dialog from '@/components/Dialog.vue';
+import Compare from '@/components/Compare.vue';
 
 import Arrow from '@/fabricClasses/Arrow.js';
 

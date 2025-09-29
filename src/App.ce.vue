@@ -901,6 +901,7 @@ async function switchDisplayMode(newMode) {
     await updateClipPathsSize();
     await updateImagesPosition();
     await addDrawingAreaHandlers();
+    await fitToCanvas();
 }
 
 function objectScaleChangedInput(event, axis) {
@@ -1910,13 +1911,25 @@ async function fitToCanvas() {
     const canvasWidth = fabricCanvas.getWidth();
     const canvasHeight = fabricCanvas.getHeight();
 
-
     // Calcula o zoom necessário para caber as duas imagens
-    const totalImageWidth = firstImage.value.getScaledWidth() + secondImage.value.getScaledWidth();
-    const maxImageHeight = Math.max(firstImage.value.getScaledHeight(), secondImage.value.getScaledHeight());
+    let totalImageWidth, totalImageHeight;
+    
+    if (displayMode.value === 'ltr') {
+        // Modo lado a lado: soma larguras, pega maior altura
+        totalImageWidth = firstImage.value.getScaledWidth() + secondImage.value.getScaledWidth();
+        totalImageHeight = Math.max(firstImage.value.getScaledHeight(), secondImage.value.getScaledHeight());
+    } else {
+        // Modo TTB: pega maior largura, soma alturas
+        totalImageWidth = Math.max(firstImage.value.getScaledWidth(), secondImage.value.getScaledWidth());
+        totalImageHeight = firstImage.value.getScaledHeight() + secondImage.value.getScaledHeight();
+        
+        // No modo TTB, limita a altura máxima à altura da janela
+        const windowHeight = window.innerHeight;
+        totalImageHeight = Math.min(totalImageHeight, windowHeight);
+    }
 
     const scaleX = canvasWidth / totalImageWidth;
-    const scaleY = canvasHeight / maxImageHeight;
+    const scaleY = canvasHeight / totalImageHeight;
     const targetZoom = Math.min(Math.max(Math.min(scaleX, scaleY), minZoom.value), maxZoom.value);
 
     const currentZoom = fabricCanvas.getZoom();

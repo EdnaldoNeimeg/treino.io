@@ -7,16 +7,33 @@
                 <div class="flex items-center justify-center gap-2">
                     <div class="flex items-center gap-3 p-1.5 rounded-md shadow-xl bg-white">
                         <div class="flex items-center justify-center gap-2">
-                            <input type="text" v-model="drawingAreaWidth" placeholder="Largura"
+                            <div class="relative group">
+                                <input type="text" v-model="drawingAreaWidth" placeholder="Largura"
                                 class="w-14 h-8 text-sm text-center border border-slate-200 rounded p-1 bg-slate-100">
+                                <Tooltip
+                                    position="bottom"
+                                    class="top-full left-1/2 -translate-x-1/2"
+                                >
+                                    <span class="text-xs">Largura</span>
+                                </Tooltip>
+                            </div>
                             <span>×</span>
-                            <input type="text" v-model="drawingAreaHeight" placeholder="Altura"
-                                class="w-14 h-8 text-sm text-center border border-slate-200 rounded p-1 bg-slate-100">
+                            <div class="relative group">
+                                <input type="text" v-model="drawingAreaHeight" placeholder="Altura"
+                                    class="w-14 h-8 text-sm text-center border border-slate-200 rounded p-1 bg-slate-100">
+                                <Tooltip
+                                    position="bottom"
+                                    class="top-full left-1/2 -translate-x-1/2"
+                                >
+                                    <span class="text-xs">Altura</span>
+                                </Tooltip>
+                            </div>
                         </div>
                         <div class="h-6 border-r border-slate-300"></div>
                         <div class="flex items-center justify-center gap-2">
-                            <div class="flex items-center overflow-hidden">
-                                <button @click="zoomOut()"
+                            <div class="group relative flex items-center">
+                                <button
+                                    @click="zoomOut()"
                                     class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded-l transition-colors">
                                     <iconify-icon icon="material-symbols:remove" class="inline-block"></iconify-icon>
                                 </button>
@@ -27,134 +44,235 @@
                                     class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded-r transition-colors">
                                     <iconify-icon icon="material-symbols:add" class="inline-block"></iconify-icon>
                                 </button>
+
+                                <Tooltip
+                                    position="bottom"
+                                    class="top-full left-1/2 -translate-x-1/2"
+                                >
+                                    <span class="text-xs">Zoom</span>
+                                </Tooltip>
                             </div>
-                            <button @click="fitToCanvas()"
-                                class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors">
-                                <iconify-icon icon="carbon:fit-to-screen" class="inline-block"></iconify-icon>
-                            </button>
+                            <div class="group relative">
+                                <button @click="fitToCanvas()"
+                                    class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors">
+                                    <iconify-icon icon="carbon:fit-to-screen" class="inline-block"></iconify-icon>
+                                </button>
+                                <Tooltip
+                                    position="bottom"
+                                    class="top-full left-1/2 -translate-x-1/2"
+                                >
+                                    <span class="text-xs">Resetar zoom</span>
+                                </Tooltip>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-center gap-2">
+                            <div class="group relative">
+                                <button @click="showCompareModal = true"
+                                    class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 text-xl hover:text-white text-black rounded transition-colors">
+                                    <iconify-icon icon="fluent:filmstrip-split-20-regular" class="inline-block"></iconify-icon>
+                                </button>
+                                <Tooltip
+                                    position="bottom"
+                                    class="top-full left-1/2 -translate-x-1/2"
+                                >
+                                    <span class="text-xs">Comparar</span>
+                                </Tooltip>
+                            </div>
                         </div>
                         <div class="h-6 border-r border-slate-300"></div>
                         <div class="flex items-center">
-                            <button @click="displayMode = 'ltr'"
-                                class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded-l transition-colors"
-                                :class="{ 'bg-primary-500! text-white': displayMode === 'ltr' }">
-                                <iconify-icon icon="streamline:interface-layout-two-columns-colums-layout-layouts-two"
-                                    class="inline-block"></iconify-icon>
-                            </button>
-                            <button @click="displayMode = 'ttb'"
-                                class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded-r transition-colors"
-                                :class="{ 'bg-primary-500! text-white': displayMode === 'ttb' }">
-                                <iconify-icon icon="streamline:interface-layout-two-columns-colums-layout-layouts-two"
-                                    class="rotate-90 inline-block"></iconify-icon>
-                            </button>
+                            <div class="group relative">
+                                <button @click="displayMode = 'ltr'"
+                                    class="h-8 w-8 text-sm flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded-l transition-colors"
+                                    :class="{ 'bg-primary-500! text-white': displayMode === 'ltr' }">
+                                    <iconify-icon icon="streamline:interface-layout-two-columns-colums-layout-layouts-two"
+                                        class="inline-block"></iconify-icon>
+                                </button>
+                                <Tooltip
+                                    position="bottom"
+                                    class="top-full left-1/2 -translate-x-1/2"
+                                >
+                                    <span class="text-xs">Dividir verticalmente</span>
+                                </Tooltip>
+                            </div>
+                            <div class="group relative">
+                                <button @click="displayMode = 'ttb'"
+                                    class="h-8 w-8 text-sm flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded-r transition-colors"
+                                    :class="{ 'bg-primary-500! text-white': displayMode === 'ttb' }">
+                                    <iconify-icon icon="streamline:interface-layout-two-columns-colums-layout-layouts-two"
+                                        class="rotate-90 inline-block"></iconify-icon>
+                                </button>
+                                <Tooltip
+                                    position="bottom"
+                                    class="top-full left-1/2 -translate-x-1/2"
+                                >
+                                    <span class="text-xs">Dividir horizontalmente</span>
+                                </Tooltip>
+                            </div>
                         </div>
                         <div class="h-6 border-r border-slate-300"></div>
                         <div class="flex items-center gap-2">
-                            <button @click="setActiveTool('select')"
-                                class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'select' || activeTool === null }">
-                                <iconify-icon icon="iconamoon:cursor-fill" class="text-sm inline-block"></iconify-icon>
-                                <span class="text-xs absolute bottom-0.5 right-1">
-                                    <small>1</small>
-                                </span>
-                            </button>
-                            <button @click="setActiveTool('draw')"
-                                class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'draw' }">
-                                <iconify-icon icon="streamline:pen-draw" class="text-sm inline-block"></iconify-icon>
-                                <span class="text-xs absolute bottom-0.5 right-1">
-                                    <small>2</small>
-                                </span>
-                            </button>
-                            <button @click="setActiveTool('rectangle')"
-                                class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'rectangle' }">
-                                <iconify-icon icon="ic:outline-square" class="text-sm inline-block"></iconify-icon>
-                                <span class="text-xs absolute bottom-0.5 right-1">
-                                    <small>3</small>
-                                </span>
-                            </button>
-                            <button @click="setActiveTool('circle')"
-                                class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'circle' }">
-                                <iconify-icon icon="mdi:checkbox-blank-circle-outline"
-                                    class="text-sm inline-block"></iconify-icon>
-                                <span class="text-xs absolute bottom-0.5 right-1">
-                                    <small>4</small>
-                                </span>
-                            </button>
-                            <button @click="setActiveTool('triangle')"
-                                class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'triangle' }">
-                                <iconify-icon icon="mdi:triangle-outline" class="text-sm inline-block"></iconify-icon>
-                                <span class="text-xs absolute bottom-0.5 right-1">
-                                    <small>5</small>
-                                </span>
-                            </button>
-                            <button @click="setActiveTool('line')"
-                                class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'line' }">
-                                <iconify-icon icon="garden:dash-stroke-16"
-                                    class="inline-block -rotate-45"></iconify-icon>
-                                <span class="text-sm absolute bottom-0.5 right-1">
-                                    <small>6</small>
-                                </span>
-                            </button>
-                            <button @click="setActiveTool('arrow')"
-                                class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'arrow' }">
-                                <iconify-icon icon="material-symbols-light:line-start-arrow-notch-rounded"
-                                    class="text-lg inline-block -rotate-45"></iconify-icon>
-                                <span class="text-sm absolute bottom-0.5 right-1">
-                                    <small>7</small>
-                                </span>
-                            </button>
-                            <button @click="setActiveTool('text')"
-                                class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'text' }">
-                                <iconify-icon icon="iconoir:text" class="text-base inline-block"></iconify-icon>
-                                <span class="text-sm absolute bottom-0.5 right-1">
-                                    <small>8</small>
-                                </span>
-                            </button>
-                            <button @click="setActiveTool('eraser')"
-                                class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                :class="{ 'bg-primary-500! text-white': activeTool === 'eraser' }">
-                                <iconify-icon icon="lineicons:eraser" class="text-sm inline-block"></iconify-icon>
-                                <span class="text-xs absolute bottom-0.5 right-1">
-                                    <small>9</small>
-                                </span>
-                            </button>
+                            <div class="group relative">
+                                <button @click="setActiveTool('select')"
+                                    class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
+                                    :class="{ 'bg-primary-500! text-white': activeTool === 'select' || activeTool === null }">
+                                    <iconify-icon icon="iconamoon:cursor-fill" class="text-sm inline-block"></iconify-icon>
+                                    <span class="text-xs absolute bottom-0.5 right-1">
+                                        <small>1</small>
+                                    </span>
+                                </button>
+                                <Tooltip position="bottom" class="top-full left-1/2 -translate-x-1/2">
+                                    <span class="text-xs whitespace-nowrap">Selecionar (1)</span>
+                                </Tooltip>
+                            </div>
+                            <div class="group relative">
+                                <button @click="setActiveTool('draw')"
+                                    class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
+                                    :class="{ 'bg-primary-500! text-white': activeTool === 'draw' }">
+                                    <iconify-icon icon="streamline:pen-draw" class="text-sm inline-block"></iconify-icon>
+                                    <span class="text-xs absolute bottom-0.5 right-1">
+                                        <small>2</small>
+                                    </span>
+                                </button>
+                                <Tooltip position="bottom" class="top-full left-1/2 -translate-x-1/2">
+                                    <span class="text-xs whitespace-nowrap">Desenhar (2)</span>
+                                </Tooltip>
+                            </div>
+                            <div class="group relative">
+                                <button @click="setActiveTool('rectangle')"
+                                    class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
+                                    :class="{ 'bg-primary-500! text-white': activeTool === 'rectangle' }">
+                                    <iconify-icon icon="ic:outline-square" class="text-sm inline-block"></iconify-icon>
+                                    <span class="text-xs absolute bottom-0.5 right-1">
+                                        <small>3</small>
+                                    </span>
+                                </button>
+                                <Tooltip position="bottom" class="top-full left-1/2 -translate-x-1/2">
+                                    <span class="text-xs whitespace-nowrap">Retângulo (3)</span>
+                                </Tooltip>
+                            </div>
+                            <div class="group relative">
+                                <button @click="setActiveTool('circle')"
+                                    class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
+                                    :class="{ 'bg-primary-500! text-white': activeTool === 'circle' }">
+                                    <iconify-icon icon="mdi:checkbox-blank-circle-outline"
+                                        class="text-sm inline-block"></iconify-icon>
+                                    <span class="text-xs absolute bottom-0.5 right-1">
+                                        <small>4</small>
+                                    </span>
+                                </button>
+                                <Tooltip position="bottom" class="top-full left-1/2 -translate-x-1/2">
+                                    <span class="text-xs whitespace-nowrap">Círculo (4)</span>
+                                </Tooltip>
+                            </div>
+                            <div class="group relative">
+                                <button @click="setActiveTool('triangle')"
+                                    class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
+                                    :class="{ 'bg-primary-500! text-white': activeTool === 'triangle' }">
+                                    <iconify-icon icon="mdi:triangle-outline" class="text-sm inline-block"></iconify-icon>
+                                    <span class="text-xs absolute bottom-0.5 right-1">
+                                        <small>5</small>
+                                    </span>
+                                </button>
+                                <Tooltip position="bottom" class="top-full left-1/2 -translate-x-1/2">
+                                    <span class="text-xs whitespace-nowrap">Triângulo (5)</span>
+                                </Tooltip>
+                            </div>
+                            <div class="group relative">
+                                <button @click="setActiveTool('line')"
+                                    class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
+                                    :class="{ 'bg-primary-500! text-white': activeTool === 'line' }">
+                                    <iconify-icon icon="garden:dash-stroke-16"
+                                        class="inline-block -rotate-45"></iconify-icon>
+                                    <span class="text-sm absolute bottom-0.5 right-1">
+                                        <small>6</small>
+                                    </span>
+                                </button>
+                                <Tooltip position="bottom" class="top-full left-1/2 -translate-x-1/2">
+                                    <span class="text-xs whitespace-nowrap">Linha (6)</span>
+                                </Tooltip>
+                            </div>
+                            <div class="group relative">
+                                <button @click="setActiveTool('arrow')"
+                                    class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
+                                    :class="{ 'bg-primary-500! text-white': activeTool === 'arrow' }">
+                                    <iconify-icon icon="material-symbols-light:line-start-arrow-notch-rounded"
+                                        class="text-lg inline-block -rotate-45"></iconify-icon>
+                                    <span class="text-sm absolute bottom-0.5 right-1">
+                                        <small>7</small>
+                                    </span>
+                                </button>
+                                <Tooltip position="bottom" class="top-full left-1/2 -translate-x-1/2">
+                                    <span class="text-xs whitespace-nowrap">Seta (7)</span>
+                                </Tooltip>
+                            </div>
+                            <div class="group relative">
+                                <button @click="setActiveTool('text')"
+                                    class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
+                                    :class="{ 'bg-primary-500! text-white': activeTool === 'text' }">
+                                    <iconify-icon icon="iconoir:text" class="text-base inline-block"></iconify-icon>
+                                    <span class="text-sm absolute bottom-0.5 right-1">
+                                        <small>8</small>
+                                    </span>
+                                </button>
+                                <Tooltip position="bottom" class="top-full left-1/2 -translate-x-1/2">
+                                    <span class="text-xs whitespace-nowrap">Texto (8)</span>
+                                </Tooltip>
+                            </div>
+                            <div class="group relative">
+                                <button @click="setActiveTool('eraser')"
+                                    class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
+                                    :class="{ 'bg-primary-500! text-white': activeTool === 'eraser' }">
+                                    <iconify-icon icon="lineicons:eraser" class="text-sm inline-block"></iconify-icon>
+                                    <span class="text-xs absolute bottom-0.5 right-1">
+                                        <small>9</small>
+                                    </span>
+                                </button>
+                                <Tooltip position="bottom" class="top-full left-1/2 -translate-x-1/2">
+                                    <span class="text-xs whitespace-nowrap">Borracha (9)</span>
+                                </Tooltip>
+                            </div>
                         </div>
                         <div class="h-6 border-r border-slate-300"></div>
                         <div class="flex items-center gap-2">
-                            <button
-                                class="group h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-gradient-to-br hover:from-[#07BEF8] hover:to-[#98DC47] rounded transition-colors">
-                                <!-- add svg gradient ring -->
-                                <svg class="w-5 h-5 animate-spin" viewBox="0 0 32 32">
-                                    <defs>
-                                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color: #07BEF8; stop-opacity: 1" :style="{
+                            <div class="group relative">
+                                <button
+                                    class="group h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-gradient-to-br hover:from-[#07BEF8] hover:to-[#98DC47] rounded transition-colors">
+                                    <!-- add svg gradient ring -->
+                                    <svg class="w-5 h-5 animate-spin" viewBox="0 0 32 32">
+                                        <defs>
+                                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" style="stop-color: #07BEF8; stop-opacity: 1" :style="{
 
-                                            }" />
-                                            <stop offset="100%" style="stop-color: #98DC47; stop-opacity: 1" />
-                                        </linearGradient>
-                                    </defs>
-                                    <circle cx="16" cy="16" r="13" stroke="url(#gradient)" stroke-width="5" fill="none"
-                                        class="animate-pulse group-hover:stroke-white transition-colors" />
-                                </svg>
-                            </button>
+                                                }" />
+                                                <stop offset="100%" style="stop-color: #98DC47; stop-opacity: 1" />
+                                            </linearGradient>
+                                        </defs>
+                                        <circle cx="16" cy="16" r="13" stroke="url(#gradient)" stroke-width="5" fill="none"
+                                            class="animate-pulse group-hover:stroke-white transition-colors" />
+                                    </svg>
+                                </button>
+                                <Tooltip
+                                    position="bottom"
+                                    class="top-full left-1/2 -translate-x-1/2"
+                                >
+                                    <span class="text-xs whitespace-nowrap">Simular evolução com IA</span>
+                                </Tooltip>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="shrink">
-                <div class="bg-white rounded p-1 5 shadow-xl">
+                <div class="group relative bg-white rounded p-1 5 shadow-xl">
                     <button @click="toggleWatermark()"
                         class="h-8 w-8 flex flex-col items-center justify-center bg-slate-100 hover:bg-slate-200 text-black rounded transition-colors"
                         :class="{ 'bg-primary-500! text-white': showWatermark }">
                         <iconify-icon icon="mdi-light:bookmark" class="text-lg inline-block"></iconify-icon>
                     </button>
+                    <Tooltip position="left">
+                        <span class="text-xs whitespace-nowrap">Marca d'água</span>
+                    </Tooltip>
                 </div>
             </div>
         </div>
@@ -163,9 +281,6 @@
             :class="{
                 'opacity-100! pointer-events-auto! right-2!':
                     (
-                        (
-                            activeObject || activeTool !== 'select'
-                        ) ||
                         (
                             activeObject &&
                             activeTool === 'select' &&
@@ -325,16 +440,6 @@
                 <div
                     class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
                     <div class="flex items-center justify-between text-xs">
-                        <div>Cor do Texto:</div>
-                        <div>{{ textColor }}</div>
-                    </div>
-                    <div class="flex flex-col gap-2">
-                        <ColorSelector v-model="textColor" @close="closeColorPicker" />
-                    </div>
-                </div>
-                <div
-                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
-                    <div class="flex items-center justify-between text-xs">
                         <div>Tamanho da Fonte:</div>
                         <div>{{ textFontSize }}px</div>
                     </div>
@@ -342,6 +447,16 @@
                         <input type="range"
                             class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer range-sm  [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-[12px] [&::-webkit-slider-thumb]:w-[12px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-500"
                             min="8" max="120" step="2" v-model="textFontSize">
+                    </div>
+                </div>
+                <div
+                    class="flex flex-col gap-2 border-b border-slate-200 pb-2 mb-2 last:border-b-0 last:mb-0 last:pb-0">
+                    <div class="flex items-center justify-between text-xs">
+                        <div>Cor do Texto:</div>
+                        <div>{{ textColor }}</div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <ColorSelector v-model="textColor" @close="closeColorPicker" />
                     </div>
                 </div>
 
@@ -461,7 +576,7 @@
                             <!-- Finish button -->
                             <button @click="finishDrawing()"
                                 class="h-10 px-8 pointer-events-auto flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 text-white rounded font-semibold transition-colors cursor-pointer">
-                                <iconify-icon icon="iconoir:check" class="inline-block"></iconify-icon>
+                                <iconify-icon icon="iconoir:check" class="text-2xl inline-block"></iconify-icon>
                                 <span class="ml-3">Finalizar</span>
                             </button>
                         </div>
@@ -479,6 +594,7 @@ import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, IText, Cir
 import { EraserBrush, ClippingGroup } from '@erase2d/fabric';
 
 import ColorSelector from '@/components/ColorSelector.vue';
+import Tooltip from './components/Tooltip.vue';
 
 import Arrow from '@/fabricClasses/Arrow.js';
 
@@ -521,6 +637,7 @@ const emit = defineEmits(['finished']);
 const ready = ref(false);
 const finishing = ref(false);
 const altKeyPressed = ref(false);
+const showCompareModal = ref(false);
 
 // Variáveis para pan com botão direito
 const isPanning = ref(false);
@@ -901,7 +1018,10 @@ async function switchDisplayMode(newMode) {
     await updateClipPathsSize();
     await updateImagesPosition();
     await addDrawingAreaHandlers();
-    await fitToCanvas();
+    await fitToCanvas(false);    
+    if (newMode === 'ttb') {
+        await ensureDrawingAreaVisible();
+    }
 }
 
 function objectScaleChangedInput(event, axis) {
@@ -945,11 +1065,10 @@ async function addDrawingArea() {
     const canvasWidth = fabricCanvas.getWidth();
     const canvasHeight = fabricCanvas.getHeight();
 
-    const totalImageWidth = firstClipPath.value.width + secondClipPath.value.width;
     const minImageHeight = Math.min(firstImage.value.getScaledHeight(), secondImage.value.getScaledHeight());
     const minImageWidth = Math.min(firstImage.value.getScaledWidth(), secondImage.value.getScaledWidth());
-
-    let daw = totalImageWidth;
+    
+    let daw = minImageWidth * 2;
     let dah = minImageHeight;
 
     if(displayMode.value === 'ttb') {
@@ -1076,21 +1195,11 @@ async function updateClipPathsSize() {
     let clipHeight = dah;
 
     if(displayMode.value === 'ttb') {
-        // Em top-to-bottom, o drawingArea deve ser tão largo quanto a menor imagem
-        // e tão alto quanto duas vezes a altura da menor imagem
-        const minImageWidth = Math.min(firstImage.value.getScaledWidth(), secondImage.value.getScaledWidth());
-        const totalImageHeight = Math.min(firstClipPath.value.height, secondClipPath.value.height) * 2;
-
-        daw = Math.min(daw, minImageWidth);
-        dah = Math.min(dah, totalImageHeight);
         dal = drawingArea.value.left - (daw / 2); // Ajusta para originX: center
         dat = drawingArea.value.top - (dah / 2); // Ajusta para originY: center
 
         clipWidth = daw;
         clipHeight = dah / 2;
-
-        console.log('da width/height', daw, dah);
-        
     }
 
     // First clipPath ocupa metade esquerda
@@ -1132,9 +1241,6 @@ async function updateImagesPosition(oldSize = null) {
 
         // // Se a imagem nunca foi movida manualmente ou não temos tamanho antigo, centraliza
         if (!oldSize || !img.isManuallyMoved) {
-            console.log('oldSize', oldSize);
-            console.log(img.id + ' isManuallyMoved', img.isManuallyMoved);
-            
             const left = newCenterX - img.getScaledWidth() / 2;
             const top = newCenterY - img.getScaledHeight() / 2;
             img.set({ left, top });
@@ -1905,7 +2011,7 @@ async function zoomOut(factor = 1.2) {
 /**
  * Ajusta o zoom para caber todo o conteúdo no canvas com animação suave
  */
-async function fitToCanvas() {
+async function fitToCanvas(withTransition = true) {
     if (!firstImage.value || !secondImage.value) return;
 
     const canvasWidth = fabricCanvas.getWidth();
@@ -1936,14 +2042,55 @@ async function fitToCanvas() {
     const currentTransform = [...fabricCanvas.viewportTransform];
     const targetTransform = [1, 0, 0, 1, 0, 0];
 
-    // Anima o zoom e reseta o viewport
-    await Promise.all([
-        animateZoom(currentZoom, targetZoom, 500),
-        animateViewportTransform(currentTransform, targetTransform, 500)
-    ]);
+    if(withTransition) {
+        // Anima o zoom e o viewport em paralelo
+        await Promise.all([
+            animateZoom(currentZoom, targetZoom, 500),
+            animateViewportTransform(currentTransform, targetTransform, 500)
+        ]);
+    } else {
+        fabricCanvas.setZoom(targetZoom);
+        fabricCanvas.viewportTransform = targetTransform;
+        fabricCanvas.requestRenderAll();
+    }
 
     // Atualiza a área de desenho após ajustar o zoom
     addDrawingArea();
+}
+
+async function ensureDrawingAreaVisible() {
+    if (!drawingArea.value) return;
+
+    // Aguarda o próximo tick para garantir que todas as renderizações pendentes foram concluídas
+    await nextTick();
+
+    const canvasWidth = fabricCanvas.getWidth();
+    const canvasHeight = fabricCanvas.getHeight();
+    const margin = 120; // 40px de margem
+
+    // Pega os limites da área de desenho
+    const daBounds = drawingArea.value.getBoundingRect();
+
+    // Calcula o zoom necessário para que a área de desenho caiba na tela
+    const requiredZoomX = (canvasWidth - margin) / daBounds.width;
+    const requiredZoomY = (canvasHeight - margin) / daBounds.height;
+    const requiredZoomFactor = Math.min(requiredZoomX, requiredZoomY);
+
+    const currentZoom = fabricCanvas.getZoom();
+    let targetZoom = currentZoom;
+
+    // Só aplica o zoom se for para diminuir (zoom out)
+    if (requiredZoomFactor < 1) {
+        targetZoom = currentZoom * requiredZoomFactor;
+    }
+
+    // Aplica o zoom se necessário
+    if (targetZoom !== currentZoom) {
+        const centerPoint = drawingArea.value.getCenterPoint();
+        fabricCanvas.zoomToPoint(centerPoint, targetZoom);
+        zoomLevel.value = targetZoom;
+        fabricCanvas.requestRenderAll();
+    }
 }
 
 function createText(x, y) {
@@ -3043,7 +3190,7 @@ function activateSelectionMode() {
         fabricCanvas.isDrawingMode = false;
         fabricCanvas.selection = true; // Habilita seleção quando ferramenta de seleção está ativa
         fabricCanvas.defaultCursor = 'default';
-        fabricCanvas.hoverCursor = 'move';
+        fabricCanvas.hoverCursor = 'default';
     }
 }
 

@@ -67,7 +67,7 @@
                         </div>
                         <div class="flex items-center justify-center gap-2">
                             <div class="group relative">
-                                <button @click="showCompareModal = true"
+                                <button @click="compareImages"
                                     class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 text-xl hover:text-white text-black rounded transition-colors">
                                     <iconify-icon icon="fluent:filmstrip-split-20-regular" class="inline-block"></iconify-icon>
                                 </button>
@@ -291,6 +291,33 @@
                         ['draw', 'text', 'rectangle', 'circle', 'line', 'arrow'].includes(activeTool)
                     )
             }">
+            <div class="flex flex-col gap-2 border-b border-slate-200 pb-4 last:border-b-0 last:mb-0 last:pb-0">
+                <div
+                    v-if="fabricCanvas.getActiveObject()?.type == 'image'"
+                >
+                    <button
+                        class="h-8 w-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200"
+                        @click="toggleCropper()">
+                        <iconify-icon icon="mdi:crop" class="text-base inline-block"></iconify-icon>
+                    </button>
+                </div>
+                <div
+                    v-if="activeObject && activeObject.id !== 'firstImage' && activeObject.id !== 'secondImage'"
+                    class="flex justify-end gap-2"
+                >
+                    <button
+                        class="h-8 w-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200"
+                        @click="duplicateActiveObject()">
+                        <iconify-icon icon="cil:clone" class="text-sm inline-block"></iconify-icon>
+                    </button>
+                    <button
+                        class="h-8 w-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200"
+                        @click="deleteActiveObject()">
+                        <iconify-icon icon="ic:baseline-delete-outline"
+                            class="text-base inline-block"></iconify-icon>
+                    </button>
+                </div>
+            </div>
             <template v-if="
                 (activeObject && activeObject.hasOwnProperty('opacity')) || activeTool !== 'select'
             ">
@@ -530,23 +557,6 @@
                     </div>
                 </div>
             </template>
-            <template v-if="activeObject && activeObject.id !== 'firstImage' && activeObject.id !== 'secondImage'">
-                <div class="flex flex-col gap-2 border-b border-slate-200 pt-2 last:border-b-0 last:mb-0 last:pb-0">
-                    <div class="flex justify-end gap-2">
-                        <button
-                            class="h-8 w-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200"
-                            @click="duplicateActiveObject()">
-                            <iconify-icon icon="cil:clone" class="text-sm inline-block"></iconify-icon>
-                        </button>
-                        <button
-                            class="h-8 w-8 flex items-center justify-center border border-slate-200 rounded text-xs transition-colors hover:bg-slate-200"
-                            @click="deleteActiveObject()">
-                            <iconify-icon icon="ic:baseline-delete-outline"
-                                class="text-base inline-block"></iconify-icon>
-                        </button>
-                    </div>
-                </div>
-            </template>
         </div>
         <div class="grow flex items-center justify-center w-full bg-[url(@/assets/image.png)] bg-size-[800px]">
             <div ref="canvasContainer" class="max-h-full overflow-auto w-full h-full flex items-center justify-center">
@@ -592,24 +602,40 @@
             title="Comparar Imagens"
             @close="showCompareModal = false"
         >
-            <Compare 
-                :first-image-src="props.imgLeftSrc"
-                :second-image-src="props.imgRightSrc"
+            <Compare
+                :images-to-compare="imagesToCompare"
+            />
+        </Dialog>
+        <Dialog 
+            :is-visible="showCropperModal"
+            dialog-id="crop"
+            title="Cortar Imagem"
+            @close="showCropperModal = false"
+            >
+            <Cropper
+                :image="imageToCrop"
+                @image-cropped="applyCroppedImage"
             />
         </Dialog>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed, nextTick, defineAsyncComponent } from 'vue';
 import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, IText, Circle, Triangle, Polyline, Point } from 'fabric'
 
 import { EraserBrush, ClippingGroup } from '@erase2d/fabric';
 
-import ColorSelector from '@/components/ColorSelector.vue';
-import Tooltip from './components/Tooltip.vue';
-import Dialog from '@/components/Dialog.vue';
-import Compare from '@/components/Compare.vue';
+import { applyStyleToControls } from '@/composables/useControls.js';
+
+import useCommonStore from '@/stores/common.js';
+const commonStore = useCommonStore();
+
+const ColorSelector = defineAsyncComponent(() => import('@/components/ColorSelector.vue'));
+const Tooltip = defineAsyncComponent(() => import('./components/Tooltip.vue'));
+const Dialog = defineAsyncComponent(() => import('@/components/Dialog.vue'));
+const Compare = defineAsyncComponent(() => import('@/components/Compare.vue'));
+const Cropper = defineAsyncComponent(() => import('@/components/Cropper.vue'));
 
 import Arrow from '@/fabricClasses/Arrow.js';
 
@@ -653,14 +679,17 @@ const ready = ref(false);
 const finishing = ref(false);
 const altKeyPressed = ref(false);
 const showCompareModal = ref(false);
+const showCropperModal = ref(false);
+
+// URLs de dados para comparação de imagens
+const img1DataUrl = ref('');
+const img2DataUrl = ref('');
 
 // Variáveis para pan com botão direito
 const isPanning = ref(false);
 const lastPanPoint = ref({ x: 0, y: 0 });
 
 const eraser = ref(null);
-
-const brandColor = '#FB803C'; // Cor da marca (laranja)
 
 // Variáveis para zoom suave com mouse wheel (removidas se não usadas)
 
@@ -686,6 +715,12 @@ const drawingArea = ref(null); // Área de desenho (retângulo transparente)
 const zoomLevel = ref(1);
 const maxZoom = ref(4.5);
 const minZoom = ref(0.5);
+
+const imagesToCompare = ref({
+    first: null,
+    second: null,
+});
+const imageToCrop = ref(null);
 
 const drawingAreaWidth = ref(0);
 const drawingAreaHeight = ref(0);
@@ -735,8 +770,8 @@ const isDrawingTriangle = ref(false);
 const isDrawingLine = ref(false);
 const isDrawingArrow = ref(false);
 let rect, circle, triangle, line, arrow, origX, origY;
-const fillColor = ref(brandColor); // Cor de preenchimento de novos objetos
-const lineStrokeColor = ref(brandColor); // Cor da linha para linhas e setas
+const fillColor = ref(commonStore.brandColor.value); // Cor de preenchimento de novos objetos
+const lineStrokeColor = ref(commonStore.brandColor.value); // Cor da linha para linhas e setas
 
 // 3. CICLO DE VIDA 'onMounted'
 // O código dentro do 'onMounted' só executa *depois* que o componente foi montado na página.
@@ -1020,6 +1055,55 @@ const logoSettings = computed(() => {
 
 
 // 4. FUNÇÕES PRINCIPAIS
+
+async function applyCroppedImage(croppedImageData) {
+    
+    const dataURL = croppedImageData.dataURL;
+    const croppedWidth = croppedImageData.width;
+    const croppedHeight = croppedImageData.height;
+
+    if (!dataURL || !imageToCrop.value) return;
+
+    const id = imageToCrop.value.id;
+    const image = fabricCanvas.getObjects().find(obj => obj.id === id);
+    if (!image) return;    
+
+    // Store current visual properties to maintain appearance
+    const currentScaledWidth = image.getScaledWidth();
+    const currentScaledHeight = image.getScaledHeight();
+    const currentLeft = image.left;
+    const currentTop = image.top;
+
+    // Update the image source with the cropped version
+    image.setSrc(dataURL, () => {
+        // After the new image loads, adjust scale to maintain visual size
+        // The new image has the cropped dimensions, so we need to scale it
+        // to match the previous visual size if that's desired behavior
+        
+        // Option 1: Maintain the same visual size (scale to fit previous size)
+        const newScaleX = currentScaledWidth / croppedWidth;
+        const newScaleY = currentScaledHeight / croppedHeight;
+        
+        // Option 2: Keep original scale (cropped image might appear smaller/larger)
+        // Comment out the lines above and uncomment below to use original scale:
+        // const newScaleX = image.scaleX;
+        // const newScaleY = image.scaleY;
+        
+        image.set({
+            scaleX: newScaleX,
+            scaleY: newScaleY,
+            left: currentLeft,
+            top: currentTop
+        });
+        
+        image.setCoords();
+        fabricCanvas.requestRenderAll();
+        saveCanvasState();
+        
+        imageToCrop.value = null;
+        showCropperModal.value = false;
+    }, { crossOrigin: 'anonymous' });
+}
 
 async function switchDisplayMode(newMode) {
 
@@ -1570,6 +1654,9 @@ function manageSelection(object) {
  * Manipulador de eventos de teclado.
  */
 function handleKeyDown(e) {
+
+    if(showCompareModal.value || showCropperModal.value) return;
+
     // Atalho para Desfazer: Ctrl+Z
     if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
@@ -1672,6 +1759,9 @@ function handleKeyDown(e) {
 }
 
 function handleKeyUp(e) {
+    
+    if(showCompareModal.value || showCropperModal.value) return;
+
     if (e.key === 'Alt') {
         altKeyPressed.value = false;
     }
@@ -2188,7 +2278,7 @@ async function setHoverState(target) {
                 evented: false,
                 hoverCursor: 'default',
                 id: `${target.id}-hover`,
-                stroke: brandColor,
+                stroke: commonStore.brandColor.value,
                 strokeWidth: target.strokeWidth ? target.strokeWidth + 4 : 4,
                 fill: target.fill || 'transparent',
                 paintFirst: 'stroke',
@@ -3179,22 +3269,6 @@ function updateBrushWidth() {
     }
 }
 
-// Aplica estilos personalizados aos controles de transformação dos objetos
-function applyStyleToControls(...objects) {
-    objects.forEach(obj => {
-        if (!obj) return;
-        obj.set({
-            borderColor: brandColor,
-            cornerColor: brandColor,
-            cornerStyle: 'circle',
-            cornerSize: 10,
-            transparentCorners: false,
-            hasControls: true,
-            hasBorders: true
-        });
-    });
-}
-
 
 /**
  * Desativa o modo de desenho, voltando ao modo padrão de seleção de objetos.
@@ -3524,6 +3598,11 @@ function deleteActiveObject() {
     }
 }
 
+async function toggleCropper() {
+    imageToCrop.value = fabricCanvas.getActiveObject();
+    showCropperModal.value = !showCropperModal.value;
+}
+
 async function finishDrawing() {
     finishing.value = true;
     if (fabricCanvas && drawingArea) {
@@ -3620,6 +3699,123 @@ async function finishDrawing() {
     }
 }
 
+async function compareImages() {
+    if (fabricCanvas && firstImage.value && secondImage.value) {
+        
+        // Salva o viewport transform original
+        const origVptTransform = Object.assign(
+            [],
+            fabricCanvas.viewportTransform
+        );
+        
+        // Reseta o viewport para capturar as imagens sem transformação
+        fabricCanvas.viewportTransform = [1, 0, 0, 1, 0, 0];
+        fabricCanvas.setViewportTransform(fabricCanvas.viewportTransform);
+        fabricCanvas.requestRenderAll();
+
+        // Criar uma imagem da firstImage cortada pelo clipPath
+        const objects = fabricCanvas.getObjects();
+        const fiClone = await objects.find(obj => obj.id === 'firstImage').clone();
+        const siClone = await objects.find(obj => obj.id === 'secondImage').clone();
+
+        const firstImageDataUrl = await new Promise( async (resolve, reject) => {
+            
+            const clipPath = fiClone.clipPath;
+            const tempCanvas = new Canvas(null, {
+                width: clipPath.width,
+                height: clipPath.height,
+            });
+            
+            // Com absolutePositioned: true, o clipPath tem coordenadas absolutas ao canvas
+            // Precisamos calcular a posição da imagem relativa ao clipPath
+            // A nova posição será: onde a imagem estava - onde o clipPath estava
+            const newLeft = fiClone.left - clipPath.left;
+            const newTop = fiClone.top - clipPath.top;
+            
+            // Remove o clipPath e posiciona a imagem no canvas temporário
+            fiClone.set({
+                left: newLeft,
+                top: newTop,
+                clipPath: null,
+            });
+            
+            tempCanvas.add(fiClone);
+            tempCanvas.requestRenderAll();
+            // tempCanvas.toDataURL({
+            //     format: 'png',
+            //     quality: 1,
+            //     multiplier: 1,
+            // }, (dataUrl) => {
+            //     tempCanvas.dispose();
+            //     resolve(dataUrl);
+            // });
+
+            tempCanvas.toCanvasElement(1, {
+                width: clipPath.width,
+                height: clipPath.height,
+            })
+            .toBlob(
+                (blob) => {
+                    if (blob) resolve(blob);
+                    else reject("Houve um erro ao gerar a imagem.");
+                },
+                "image/png",
+                1
+            );
+
+        });
+        
+
+        // Criar uma imagem da secondImage cortada pelo clipPath
+        const secondImageDataUrl = await new Promise((resolve, reject) => {
+            const clipPath = siClone.clipPath;
+            const tempCanvas = new Canvas(null, {
+                width: clipPath.width,
+                height: clipPath.height,
+            });
+            
+            // Com absolutePositioned: true, o clipPath tem coordenadas absolutas ao canvas
+            // Precisamos calcular a posição da imagem relativa ao clipPath
+            // A nova posição será: onde a imagem estava - onde o clipPath estava
+            const newLeft = siClone.left - clipPath.left;
+            const newTop = siClone.top - clipPath.top;
+            
+            // Remove o clipPath e posiciona a imagem no canvas temporário
+            siClone.set({
+                left: newLeft,
+                top: newTop,
+                clipPath: null,
+            });
+
+            tempCanvas.add(siClone);
+            tempCanvas.requestRenderAll();
+
+            tempCanvas.toCanvasElement(1, {
+                width: clipPath.width,
+                height: clipPath.height,
+            })
+            .toBlob(
+                (blob) => {
+                    if (blob) resolve(blob);
+                    else reject("Houve um erro ao gerar a imagem.");
+                },
+                "image/png",
+                1
+            );
+        });
+
+        // Reseta o viewport para o original
+        fabricCanvas.viewportTransform = origVptTransform;
+        fabricCanvas.setViewportTransform(fabricCanvas.viewportTransform);
+        fabricCanvas.requestRenderAll();
+
+        // Armazena as URLs nas variáveis reativas para uso no componente Compare
+        imagesToCompare.value.first = firstImageDataUrl;
+        imagesToCompare.value.second = secondImageDataUrl;
+
+        showCompareModal.value = true;
+    }
+}
 
 // Exposição de métodos para uso externo
 defineExpose({

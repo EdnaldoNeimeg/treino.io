@@ -10,6 +10,14 @@
             >
                 <iconify-icon icon="mdi:palette-outline" class="flex items-center justify-center h-6 w-6 text-base text-black"></iconify-icon>
             </button>
+            <button
+                ref="toggleColorSelector"
+                class="w-6 h-6 m-0.5 cursor-pointer border border-slate-300 flex items-center justify-center bg-gradient-to-br bg-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary-500 hover:ring-2 hover:ring-offset-1 hover:ring-primary-500"
+                @click="setNullColor()"
+                title="Transparente"
+            >
+                <iconify-icon icon="tabler:color-picker-off" class="flex items-center justify-center h-6 w-6 text-base text-black"></iconify-icon>
+            </button>
             <button v-for="color in mainColors" :key="color" class="w-6 h-6 m-0.5 cursor-pointer border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-primary-500 hover:ring-2 hover:ring-offset-1 hover:ring-primary-500"
                 :class="{
                     'ring-2 ring-offset-1 ring-primary-500': selectedColor === color
@@ -230,6 +238,16 @@ function validateManualColor() {
     selectedColor.value = manualColor.value
     emitUpdate()
   }
+}
+
+function setNullColor() {
+  const currOpacity = opacity.value
+  opacity.value = 0
+  emitUpdate()
+
+  setTimeout(() => {
+    opacity.value = currOpacity
+  }, 200)
 }
 
 // Click away functionality usando composedPath para Web Components

@@ -433,7 +433,10 @@
                         <div>{{ lineStrokeColor }}</div>
                     </div>
                     <div class="flex flex-col gap-2">
-                        <ColorSelector v-model="lineStrokeColor" @close="closeColorPicker" />
+                        <ColorSelector
+                            v-model="lineStrokeColor"
+                            @close="closeColorPicker"
+                        />
                     </div>
                 </div>
             </template>
@@ -622,7 +625,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed, nextTick, defineAsyncComponent } from 'vue';
-import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, IText, Circle, Triangle, Polyline, Point } from 'fabric'
+import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, IText, Circle, Triangle, Polyline, Point, util } from 'fabric'
 
 import { EraserBrush, ClippingGroup } from '@erase2d/fabric';
 
@@ -770,8 +773,8 @@ const isDrawingTriangle = ref(false);
 const isDrawingLine = ref(false);
 const isDrawingArrow = ref(false);
 let rect, circle, triangle, line, arrow, origX, origY;
-const fillColor = ref(commonStore.brandColor.value); // Cor de preenchimento de novos objetos
-const lineStrokeColor = ref(commonStore.brandColor.value); // Cor da linha para linhas e setas
+const fillColor = ref(commonStore.brandColor); // Cor de preenchimento de novos objetos
+const lineStrokeColor = ref(commonStore.brandColor); // Cor da linha para linhas e setas
 
 // 3. CICLO DE VIDA 'onMounted'
 // O código dentro do 'onMounted' só executa *depois* que o componente foi montado na página.
@@ -814,7 +817,6 @@ onMounted(async () => {
     await loadImages();
     await adjustCanvasSize();
     await addClipPaths();
-    saveCanvasState(); // Salva o estado inicial
 
     // Adiciona listener para redimensionamento da janela
     window.addEventListener('resize', adjustCanvasSize);
@@ -877,7 +879,6 @@ watch(objectScaleX, (newScale) => {
     if (watchObjectScale.value === false) return;
 
     if (activeObject.value && !isNaN(newScale) && newScale > 0) {
-
         const ratio = activeObject.value.scaleY / activeObject.value.scaleX;
         let scaleY = activeObject.value.scaleY;
 
@@ -960,7 +961,7 @@ watch(() => lineStrokeColor.value, (newColor) => {
     ) {
         activeObject.set({ stroke: newColor });
     }
-    fabricCanvas.requestRenderAll();
+    fabricCanvas.renderAll();
 });
 
 watch(textFontSize, (newSize) => {
@@ -1034,7 +1035,6 @@ watch(fillColor, (newColor) => {
     }
 });
 
-watch()
 
 const logoSettings = computed(() => {
     if (typeof props.logoSettings === 'string') {
@@ -1057,7 +1057,6 @@ const logoSettings = computed(() => {
 // 4. FUNÇÕES PRINCIPAIS
 
 async function applyCroppedImage(croppedImageData) {
-    
     const dataURL = croppedImageData.dataURL;
     const croppedWidth = croppedImageData.width;
     const croppedHeight = croppedImageData.height;
@@ -1074,26 +1073,53 @@ async function applyCroppedImage(croppedImageData) {
     const currentLeft = image.left;
     const currentTop = image.top;
 
-    // Update the image source with the cropped version
-    image.setSrc(dataURL, () => {
+    try {
+        // In FabricJS v6, setSrc returns a Promise
+        await image.setSrc(dataURL, { crossOrigin: 'anonymous' });
+        
         // After the new image loads, adjust scale to maintain visual size
         // The new image has the cropped dimensions, so we need to scale it
         // to match the previous visual size if that's desired behavior
         
         // Option 1: Maintain the same visual size (scale to fit previous size)
-        const newScaleX = currentScaledWidth / croppedWidth;
-        const newScaleY = currentScaledHeight / croppedHeight;
+        // const newScaleX = currentScaledWidth / croppedWidth;
+        // const newScaleY = currentScaledHeight / croppedHeight;
         
         // Option 2: Keep original scale (cropped image might appear smaller/larger)
         // Comment out the lines above and uncomment below to use original scale:
-        // const newScaleX = image.scaleX;
-        // const newScaleY = image.scaleY;
+        const newScaleX = image.scaleX;
+        const newScaleY = image.scaleY;
         
         image.set({
             scaleX: newScaleX,
             scaleY: newScaleY,
             left: currentLeft,
             top: currentTop
+        });
+
+        image.setCoords();
+        
+        const newRatio = image.getScaledWidth() / image.getScaledHeight();
+        const da = drawingArea.value;
+        let daRatio;
+
+        if(displayMode.value === 'ltr'){
+            daRatio = (da.width / 2) / da.height;
+        } else {
+            daRatio = da.width / (da.height / 2);
+        }
+        
+        if(newRatio > daRatio) {
+            objectScaleX.value = ((da.width / ( displayMode.value === 'ltr' ? 2 : 1)) / image.width);
+            objectScaleY.value = objectScaleX.value;
+        } else {
+            objectScaleY.value = (da.height / ( displayMode.value === 'ltr' ? 2 : 1)) / image.heights;
+            objectScaleX.value = objectScaleY.value;
+        }     
+
+        image.set({
+            scaleX: objectScaleX.value,
+            scaleY: objectScaleY.value,
         });
         
         image.setCoords();
@@ -1102,7 +1128,13 @@ async function applyCroppedImage(croppedImageData) {
         
         imageToCrop.value = null;
         showCropperModal.value = false;
-    }, { crossOrigin: 'anonymous' });
+        
+        console.log('Image successfully replaced with cropped version');
+    } catch (error) {
+        console.error('Error applying cropped image:', error);
+        // Optionally show user feedback about the error
+        alert('Erro ao aplicar a imagem cortada. Tente novamente.');
+    }
 }
 
 async function switchDisplayMode(newMode) {
@@ -1136,20 +1168,6 @@ function objectScaleChangedInput(event, axis) {
     } else if (axis === 'y') {
         objectScaleY.value = value;
     }
-}
-
-function getImagesMinSize() {
-    if (!firstImage.value || !secondImage.value) return { width: 0, height: 0 };
-
-    const firstImgWidth = firstImage.value.getScaledWidth();
-    const firstImgHeight = firstImage.value.getScaledHeight();
-    const secondImgWidth = secondImage.value.getScaledWidth();
-    const secondImgHeight = secondImage.value.getScaledHeight();
-
-    const minWidth = Math.min(firstImgWidth, secondImgWidth);
-    const minHeight = Math.min(firstImgHeight, secondImgHeight);
-
-    return { width: minWidth, height: minHeight };
 }
 
 async function addDrawingArea() {
@@ -1441,9 +1459,6 @@ async function updateDrawingAreaDimensions(oldValues, newValues) {
 
     // Atualiza a posição da watermark
     updateWatermarkPosition();
-
-    // Salva o estado após a modificação
-    saveCanvasState();
 
     isDrawingAreaUpdating = false;
 }
@@ -2247,6 +2262,7 @@ function isSelectableObject(obj) {
 async function setHoverState(target) {
     // Lógica para objetos selecionáveis (hover highlight)
     if (target && isSelectableObject(target)) {
+        
         // Só aplica hover se o objeto não estiver já selecionado
         const activeObject = fabricCanvas.getActiveObject();
         const isCurrentlySelected = activeObject === target ||
@@ -2278,7 +2294,7 @@ async function setHoverState(target) {
                 evented: false,
                 hoverCursor: 'default',
                 id: `${target.id}-hover`,
-                stroke: commonStore.brandColor.value,
+                stroke: commonStore.brandColor,
                 strokeWidth: target.strokeWidth ? target.strokeWidth + 4 : 4,
                 fill: target.fill || 'transparent',
                 paintFirst: 'stroke',
@@ -2323,6 +2339,9 @@ async function setHoverState(target) {
 
             fabricCanvas.add(clone);
             fabricCanvas.bringObjectToFront(clone);
+
+            console.log('hover added', clone.id);
+            
 
             fabricCanvas.requestRenderAll();
         }
@@ -2794,7 +2813,7 @@ function setupFabricEvents() {
         const objects = fabricCanvas.getObjects();
 
         if (obj.id === firstImage.value.id || obj.id === secondImage.value.id) {
-            // Marca que a imagem foi movida manualmente; não recentraliza automaticamente
+            // Marca que a imagem foi movida manualmente; para não recentralizar automaticamente
             obj.set('isManuallyMoved', true);
         }
 

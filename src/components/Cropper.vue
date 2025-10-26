@@ -543,9 +543,15 @@ function cropImage() {
       tempCanvas.renderAll();
 
       // Extract cropped image as data URL
-      const croppedDataURL = tempCanvas.toDataURL({
+      const croppedDataURL = croppingCanvas.toDataURL({
         format: 'png',
-        quality: 1
+        quality: 1,
+        top: clipPath.top - clipPath.getScaledHeight() / 2,
+        left: clipPath.left - clipPath.getScaledWidth() / 2,
+        width: clipPath.getScaledWidth(),
+        height: clipPath.getScaledHeight(),
+        multiply: 1 / croppingImg.scaleX,
+        enableRetinaScaling: true,
       });
 
       // Emit cropped image

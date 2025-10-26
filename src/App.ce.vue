@@ -843,7 +843,9 @@ onMounted(async () => {
     // });
     // fabricCanvas.add(arrow);
 
+    // Salva o estado inicial do canvas após tudo estar configurado
     setTimeout(() => {
+        saveCanvasState();
         ready.value = true;
     }, 500);
 });
@@ -1058,8 +1060,6 @@ const logoSettings = computed(() => {
 
 async function applyCroppedImage(croppedImageData) {
     const dataURL = croppedImageData.dataURL;
-    const croppedWidth = croppedImageData.width;
-    const croppedHeight = croppedImageData.height;
 
     if (!dataURL || !imageToCrop.value) return;
 
@@ -1068,8 +1068,6 @@ async function applyCroppedImage(croppedImageData) {
     if (!image) return;    
 
     // Store current visual properties to maintain appearance
-    const currentScaledWidth = image.getScaledWidth();
-    const currentScaledHeight = image.getScaledHeight();
     const currentLeft = image.left;
     const currentTop = image.top;
 
@@ -1113,7 +1111,7 @@ async function applyCroppedImage(croppedImageData) {
             objectScaleX.value = ((da.width / ( displayMode.value === 'ltr' ? 2 : 1)) / image.width);
             objectScaleY.value = objectScaleX.value;
         } else {
-            objectScaleY.value = (da.height / ( displayMode.value === 'ltr' ? 2 : 1)) / image.heights;
+            objectScaleY.value = (da.height / ( displayMode.value === 'ltr' ? 1 : 2)) / image.height;
             objectScaleX.value = objectScaleY.value;
         }     
 
@@ -1473,7 +1471,18 @@ function saveCanvasState() {
     redoStack.value = [];
 
     // Serializa o canvas para JSON, incluindo propriedades personalizadas
-    const state = fabricCanvas.toJSON(['id', 'clipPath', 'selectable', 'evented', 'absolutePositioned', 'isManuallyMoved']);
+    const stateObj = fabricCanvas.toObject([
+        'id',
+        'selectable',
+        'evented',
+        'absolutePositioned',
+        'isManuallyMoved'
+    ]);
+
+    const state = JSON.stringify(stateObj);
+
+    console.log('State', state);
+    
 
     // Adiciona o estado à pilha de desfazer
     undoStack.value.push(state);
@@ -1487,7 +1496,7 @@ function saveCanvasState() {
 /**
  * Desfaz a última ação (Ctrl+Z).
  */
-function undo() {
+async function undo() {
     if (undoStack.value.length <= 1) return; // Mantém o estado inicial na pilha
 
     // Move o estado atual da pilha de desfazer para a de refazer
@@ -1498,13 +1507,13 @@ function undo() {
     const previousState = undoStack.value[undoStack.value.length - 1];
 
     // Restaura o canvas para o estado anterior
-    restoreCanvasState(previousState);
+    await restoreCanvasState(previousState);
 }
 
 /**
  * Refaz a última ação desfeita (Ctrl+Shift+Z).
  */
-function redo() {
+async function redo() {
     if (redoStack.value.length === 0) return;
 
     // Move o estado da pilha de refazer de volta para a de desfazer
@@ -1512,36 +1521,75 @@ function redo() {
     undoStack.value.push(stateToRestore);
 
     // Restaura o canvas para este estado
-    restoreCanvasState(stateToRestore);
+    await restoreCanvasState(stateToRestore);
 }
 
 /**
  * Restaura o canvas a partir de um objeto de estado JSON.
  */
-function restoreCanvasState(state) {
+async function restoreCanvasState(state) {
     isRestoring = true; // Ativa a flag para não salvar este estado novamente
 
-    fabricCanvas.loadFromJSON(state, () => {
-        // Após carregar, reatribui as referências dos clipPaths e imagens
+    try {
+        // Limpa a seleção atual antes de restaurar
+        fabricCanvas.discardActiveObject();
+        
+        // Carrega o estado do JSON de forma assíncrona
+        await fabricCanvas.loadFromJSON(state);
+
+        console.log('Canvas state restored from JSON:', state);
+        
+        
+        // Aguarda o próximo tick para garantir que tudo foi renderizado
+        await nextTick();
+        
+        // Reatribui as referências principais buscando pelos IDs
+        firstImage.value = fabricCanvas.getObjects().find(o => o.id === 'firstImage');
+        secondImage.value = fabricCanvas.getObjects().find(o => o.id === 'secondImage');
+        drawingArea.value = fabricCanvas.getObjects().find(o => o.id === 'drawingArea');
+        watermark.value = fabricCanvas.getObjects().find(o => o.id === 'watermark');
+
+        console.log('First Image:', firstImage.value);
+        console.log('Second Image:', secondImage.value);
+        console.log('Drawing Area:', drawingArea.value);
+        console.log('Watermark:', watermark.value);
+
+        // Busca os clipPaths
+        firstClipPath.value = fabricCanvas.getObjects().find(o => o.id === 'firstClipPath');
+        secondClipPath.value = fabricCanvas.getObjects().find(o => o.id === 'secondClipPath');
+        
+        // Reatribui os clipPaths às imagens se necessário
+        if (firstImage.value && firstClipPath.value && !firstImage.value.clipPath) {
+            firstImage.value.clipPath = firstClipPath.value;
+        }
+        if (secondImage.value && secondClipPath.value && !secondImage.value.clipPath) {
+            secondImage.value.clipPath = secondClipPath.value;
+        }
+        
+        // Reaplicar estilos aos controles de todos os objetos
         fabricCanvas.getObjects().forEach(obj => {
-            if (obj.clipPath) {
-                // A referência do clipPath precisa ser re-associada
-                const clipPathId = fabricCanvas.getObjects().indexOf(obj.clipPath);
-                if (clipPathId > -1) {
-                    obj.clipPath = fabricCanvas.getObjects()[clipPathId];
-                }
+            if (obj.id !== 'drawingArea' && obj.class !== 'resize-handle' && obj.id !== 'watermark') {
+                applyStyleToControls(obj);
             }
         });
-
-        // Reatribui as referências principais
-        firstImage.value = fabricCanvas.getObjects().find(o => o.src === props.imgLeftSrc);
-        secondImage.value = fabricCanvas.getObjects().find(o => o.src === props.imgRightSrc);
-        firstClipPath.value = firstImage.value?.clipPath;
-        secondClipPath.value = secondImage.value?.clipPath;
-
+        
+        // Atualiza os valores dos inputs da área de desenho
+        if (drawingArea.value) {
+            drawingAreaWidth.value = drawingArea.value.width;
+            drawingAreaHeight.value = drawingArea.value.height;
+        }
+        
+        // Força uma nova renderização completa
         fabricCanvas.requestRenderAll();
+        
+        // Aguarda mais um tick antes de reativar os listeners
+        await nextTick();
+        
+    } catch (error) {
+        console.error('Erro ao restaurar estado do canvas:', error);
+    } finally {
         isRestoring = false; // Desativa a flag
-    });
+    }
 }
 
 /**
@@ -1852,7 +1900,7 @@ function addDrawingAreaHandlers() {
         selectable: true,
         class: 'resize-handle',
         padding: 2,
-        excludeFromExport: true,
+        // excludeFromExport: true,
     };
 
     const leftHandle = new Rect({
@@ -3632,6 +3680,9 @@ async function finishDrawing() {
             saveCanvasState();
         }
 
+        // set opacity to 0 for all resize handles
+        toggleResizeHandles(false);
+
         if(showWatermark.value && watermark.value) {
             const watermark = fabricCanvas.getObjects().find(obj => obj.id === 'watermark');
             if (watermark) {
@@ -3713,9 +3764,24 @@ async function finishDrawing() {
 
         setTimeout(() => {
             finishing.value = false;
+            toggleResizeHandles(true);
             return data;
         }, 100);
     }
+}
+
+async function toggleResizeHandles(show) {
+    if (!fabricCanvas) return;
+
+    const handles = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle');
+    handles.forEach(handle => {
+        handle.set({
+            opacity: show ? 1 : 0,
+            evented: show,
+        });
+    });
+
+    fabricCanvas.requestRenderAll();
 }
 
 async function compareImages() {

@@ -634,11 +634,11 @@ import { applyStyleToControls } from '@/composables/useControls.js';
 import useCommonStore from '@/stores/common.js';
 const commonStore = useCommonStore();
 
-const ColorSelector = defineAsyncComponent(() => import('@/components/ColorSelector.vue'));
-const Tooltip = defineAsyncComponent(() => import('./components/Tooltip.vue'));
-const Dialog = defineAsyncComponent(() => import('@/components/Dialog.vue'));
-const Compare = defineAsyncComponent(() => import('@/components/Compare.vue'));
-const Cropper = defineAsyncComponent(() => import('@/components/Cropper.vue'));
+import ColorSelector from '@/components/ColorSelector.vue';
+import Tooltip from '@/components/Tooltip.vue';
+import Dialog from '@/components/Dialog.vue';
+import Compare from '@/components/Compare.vue';
+import Cropper from '@/components/Cropper.vue';
 
 import Arrow from '@/fabricClasses/Arrow.js';
 
@@ -3229,18 +3229,40 @@ async function loadImages() {
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
 
-        // Calcula as dimensões totais das duas imagens lado a lado
-        const totalImageWidth = imgLeft.width + imgRight.width;
-        const maxImageHeight = Math.max(imgLeft.height, imgRight.height);
+        // pré-dimensiona a menor imagem se houver diferença de altura ≥ 10%
+        const leftW = imgLeft.width;
+        const leftH = imgLeft.height;
+        const rightW = imgRight.width;
+        const rightH = imgRight.height;
+
+        let preScaleLeft = 1;
+        let preScaleRight = 1;
+
+        if (leftH > 0 && rightH > 0) {
+            const largerH = Math.max(leftH, rightH);
+            const smallerH = Math.min(leftH, rightH);
+            const heightRatio = largerH / smallerH;
+            if (heightRatio >= 1.1) {
+                if (leftH > rightH) {
+                    preScaleLeft = rightH / leftH; // reduz a esquerda para igualar altura da direita
+                } else {
+                    preScaleRight = leftH / rightH; // reduz a direita para igualar altura da esquerda
+                }
+            }
+        }
+
+        // dimensões consideradas após o pré-scale (antes de ajustar ao container)
+        const preTotalImageWidth = (leftW * preScaleLeft) + (rightW * preScaleRight);
+        const preMaxImageHeight = Math.max(leftH * preScaleLeft, rightH * preScaleRight);
 
         // Calcula o fator de escala para caber no container
-        const scaleX = containerWidth / totalImageWidth;
-        const scaleY = containerHeight / maxImageHeight;
+        const scaleX = containerWidth / preTotalImageWidth;
+        const scaleY = containerHeight / preMaxImageHeight;
         const scale = Math.min(scaleX, scaleY, 0.85); // Não aumenta se já cabe
 
-        // Aplica a escala às imagens
-        imgLeft.scale(scale);
-        imgRight.scale(scale);
+        // aplica escala combinada (pré-scale para igualar alturas + scale para caber no container)
+        imgLeft.scale(scale * preScaleLeft);
+        imgRight.scale(scale * preScaleRight);
 
         // set id for images e flags iniciais
         imgLeft.set({
@@ -3253,9 +3275,9 @@ async function loadImages() {
             isManuallyMoved: false,
         });
 
-        // Calcula as dimensões finais do canvas
-        const canvasWidth = Math.min(totalImageWidth * scale, containerWidth);
-        const canvasHeight = Math.min(maxImageHeight * scale, containerHeight);
+        // Calcula as dimensões finais do canvas com base nas dimensões pós-escala
+        const canvasWidth = Math.min(preTotalImageWidth * scale, containerWidth);
+        const canvasHeight = Math.min(preMaxImageHeight * scale, containerHeight);
         // const left = (containerWidth - canvasWidth) / 2;
         // const top = (containerHeight - canvasHeight) / 2;
 

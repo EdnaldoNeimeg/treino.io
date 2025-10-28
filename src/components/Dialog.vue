@@ -1,5 +1,5 @@
 <template>
-  <Teleport to="body">
+  <Teleport :to="teleportTarget">
     <div
       v-if="isVisible"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
@@ -47,7 +47,7 @@
 </template>
 
 <script setup>
-import { watch } from 'vue';
+import { watch, ref, onMounted, getCurrentInstance } from 'vue';
 
 // Define um nome de componente multi-palavra para atender a regra de lint
 defineOptions({ name: 'AppDialog' });
@@ -81,6 +81,27 @@ const emit = defineEmits(['close']);
 const closeDialog = () => {
   emit('close', props.dialogId);
 };
+
+// destino do teleport: dentro do shadow root quando disponível
+const teleportTarget = ref(typeof document !== 'undefined' ? document.body : null);
+
+onMounted(() => {
+  const instance = getCurrentInstance();
+  const el = instance?.vnode?.el;
+  const rootNode = el && typeof el.getRootNode === 'function' ? el.getRootNode() : document;
+
+  if (rootNode && rootNode.host && rootNode instanceof ShadowRoot) {
+    let outlet = rootNode.getElementById && rootNode.getElementById('dialog-teleport-outlet');
+    if (!outlet) {
+      outlet = document.createElement('div');
+      outlet.id = 'dialog-teleport-outlet';
+      rootNode.appendChild(outlet);
+    }
+    teleportTarget.value = outlet;
+  } else {
+    teleportTarget.value = document.body;
+  }
+});
 
 // Watch para controlar o overflow do body
 watch(() => props.isVisible, (newValue) => {

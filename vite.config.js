@@ -12,7 +12,7 @@ export default defineConfig({
     vue({
       template: {
         compilerOptions: {
-          isCustomElement: (tag) => tag.includes('image-annotator')
+          isCustomElement: (tag) => tag === 'iconify-icon' || tag.includes('image-annotator')
         }
       }
     }),
@@ -25,6 +25,15 @@ export default defineConfig({
     },
   },
   build: {
+    target: 'es2019',
+    // gerar bundle único para evitar falha de imports dinâmicos no app host
+    cssCodeSplit: false,
+    rollupOptions: {
+      output: {
+        inlineDynamicImports: true,
+        manualChunks: undefined,
+      },
+    },
     lib: {
       entry: path.resolve(__dirname, 'src/main.js'),
       name: 'ImageAnnotator',

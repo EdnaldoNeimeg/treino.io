@@ -65,20 +65,7 @@
                                 </Tooltip>
                             </div>
                         </div>
-                        <div class="flex items-center justify-center gap-2">
-                            <div class="group relative">
-                                <button @click="compareImages"
-                                    class="h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-primary-500 text-xl hover:text-white text-black rounded transition-colors">
-                                    <iconify-icon icon="fluent:filmstrip-split-20-regular" class="inline-block"></iconify-icon>
-                                </button>
-                                <Tooltip
-                                    position="bottom"
-                                    class="top-full left-1/2 -translate-x-1/2"
-                                >
-                                    <span class="text-xs">Comparar</span>
-                                </Tooltip>
-                            </div>
-                        </div>
+                        <!-- botão comparar ocultado -->
                         <div class="h-6 border-r border-slate-300"></div>
                         <div class="flex items-center">
                             <div class="group relative">
@@ -192,20 +179,7 @@
                                     <span class="text-xs whitespace-nowrap">Linha (6)</span>
                                 </Tooltip>
                             </div>
-                            <div class="group relative">
-                                <button @click="setActiveTool('arrow')"
-                                    class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                    :class="{ 'bg-primary-500! text-white': activeTool === 'arrow' }">
-                                    <iconify-icon icon="material-symbols-light:line-start-arrow-notch-rounded"
-                                        class="text-lg inline-block -rotate-45"></iconify-icon>
-                                    <span class="text-sm absolute bottom-0.5 right-1">
-                                        <small>7</small>
-                                    </span>
-                                </button>
-                                <Tooltip position="bottom" class="top-full left-1/2 -translate-x-1/2">
-                                    <span class="text-xs whitespace-nowrap">Seta (7)</span>
-                                </Tooltip>
-                            </div>
+                            <!-- botão de seta ocultado -->
                             <div class="group relative">
                                 <button @click="setActiveTool('text')"
                                     class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
@@ -219,60 +193,21 @@
                                     <span class="text-xs whitespace-nowrap">Texto (8)</span>
                                 </Tooltip>
                             </div>
-                            <div class="group relative">
-                                <button @click="setActiveTool('eraser')"
-                                    class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
-                                    :class="{ 'bg-primary-500! text-white': activeTool === 'eraser' }">
-                                    <iconify-icon icon="lineicons:eraser" class="text-sm inline-block"></iconify-icon>
-                                    <span class="text-xs absolute bottom-0.5 right-1">
-                                        <small>9</small>
-                                    </span>
-                                </button>
-                                <Tooltip position="bottom" class="top-full left-1/2 -translate-x-1/2">
-                                    <span class="text-xs whitespace-nowrap">Borracha (9)</span>
-                                </Tooltip>
-                            </div>
+                            <!-- botão borracha ocultado -->
                         </div>
                         <div class="h-6 border-r border-slate-300"></div>
-                        <div class="flex items-center gap-2">
-                            <div class="group relative">
-                                <button
-                                    class="group h-8 w-8 flex items-center justify-center bg-slate-100 hover:bg-gradient-to-br hover:from-[#07BEF8] hover:to-[#98DC47] rounded transition-colors">
-                                    <!-- add svg gradient ring -->
-                                    <svg class="w-5 h-5 animate-spin" viewBox="0 0 32 32">
-                                        <defs>
-                                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                <stop offset="0%" style="stop-color: #07BEF8; stop-opacity: 1" :style="{
-
-                                                }" />
-                                                <stop offset="100%" style="stop-color: #98DC47; stop-opacity: 1" />
-                                            </linearGradient>
-                                        </defs>
-                                        <circle cx="16" cy="16" r="13" stroke="url(#gradient)" stroke-width="5" fill="none"
-                                            class="animate-pulse group-hover:stroke-white transition-colors" />
-                                    </svg>
-                                </button>
-                                <Tooltip
-                                    position="bottom"
-                                    class="top-full left-1/2 -translate-x-1/2"
-                                >
-                                    <span class="text-xs whitespace-nowrap">Simular evolução com IA</span>
-                                </Tooltip>
-                            </div>
+                        
+                        <div class="group relative">
+                            <button @click="toggleWatermark()"
+                                class="h-8 w-8 flex flex-col items-center justify-center bg-slate-100 hover:bg-slate-200 text-black rounded transition-colors"
+                                :class="{ 'bg-primary-500! text-white': showWatermark }">
+                                <iconify-icon icon="mdi-light:bookmark" class="text-lg inline-block"></iconify-icon>
+                            </button>
                         </div>
+                        <Tooltip position="left">
+                            <span class="text-xs whitespace-nowrap">Marca d'água</span>
+                        </Tooltip>
                     </div>
-                </div>
-            </div>
-            <div class="shrink">
-                <div class="group relative bg-white rounded p-1 5 shadow-xl">
-                    <button @click="toggleWatermark()"
-                        class="h-8 w-8 flex flex-col items-center justify-center bg-slate-100 hover:bg-slate-200 text-black rounded transition-colors"
-                        :class="{ 'bg-primary-500! text-white': showWatermark }">
-                        <iconify-icon icon="mdi-light:bookmark" class="text-lg inline-block"></iconify-icon>
-                    </button>
-                    <Tooltip position="left">
-                        <span class="text-xs whitespace-nowrap">Marca d'água</span>
-                    </Tooltip>
                 </div>
             </div>
         </div>
@@ -707,7 +642,7 @@ const canvasEl = ref(null);
 // 'fabricCanvas' guardará a instância do Fabric.js para podermos manipular o canvas.
 let fabricCanvas = null
 
-const showWatermark = ref(true);
+const showWatermark = ref(false);
 const watermark = ref(null);
 
 const firstImage = ref(null);
@@ -2513,7 +2448,7 @@ function setupFabricEvents() {
                 angle: 0,
                 opacity: objectOpacity.value,
                 strokeWidth: baseStrokeWidth.value * objectStrokeWidthMultiplier.value,
-                fill: fillColor.value,
+                fill: 'transparent',
                 stroke: lineStrokeColor.value,
                 transparentCorners: false
             });
@@ -2533,7 +2468,7 @@ function setupFabricEvents() {
                 originY: 'top',
                 opacity: objectOpacity.value,
                 strokeWidth: baseStrokeWidth.value * objectStrokeWidthMultiplier.value,
-                fill: fillColor.value,
+                fill: 'transparent',
                 stroke: lineStrokeColor.value,
                 radius: Math.abs(pointer.x - origX) / 2,
                 transparentCorners: false

@@ -69,7 +69,7 @@
                         <div class="h-6 border-r border-slate-300"></div>
                         <div class="flex items-center">
                             <div class="group relative">
-                                <button @click="displayMode = 'ltr'"
+                                <button @click="handleDisplayModeClick('ltr')"
                                     class="h-8 w-8 text-sm flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded-l transition-colors"
                                     :class="{ 'bg-primary-500! text-white': displayMode === 'ltr' }">
                                     <iconify-icon icon="streamline:interface-layout-two-columns-colums-layout-layouts-two"
@@ -83,7 +83,7 @@
                                 </Tooltip>
                             </div>
                             <div class="group relative">
-                                <button @click="displayMode = 'ttb'"
+                                <button @click="handleDisplayModeClick('ttb')"
                                     class="h-8 w-8 text-sm flex items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded-r transition-colors"
                                     :class="{ 'bg-primary-500! text-white': displayMode === 'ttb' }">
                                     <iconify-icon icon="streamline:interface-layout-two-columns-colums-layout-layouts-two"
@@ -179,7 +179,20 @@
                                     <span class="text-xs whitespace-nowrap">Linha (6)</span>
                                 </Tooltip>
                             </div>
-                            <!-- botão de seta ocultado -->
+                            <div class="group relative">
+                                <button @click="setActiveTool('arrow')"
+                                    class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
+                                    :class="{ 'bg-primary-500! text-white': activeTool === 'arrow' }">
+                                    <iconify-icon icon="material-symbols-light:line-start-arrow-notch-rounded"
+                                        class="text-lg inline-block -rotate-45"></iconify-icon>
+                                    <span class="text-sm absolute bottom-0.5 right-1">
+                                        <small>7</small>
+                                    </span>
+                                </button>
+                                <Tooltip position="bottom" class="top-full left-1/2 -translate-x-1/2">
+                                    <span class="text-xs whitespace-nowrap">Seta (7)</span>
+                                </Tooltip>
+                            </div>
                             <div class="group relative">
                                 <button @click="setActiveTool('text')"
                                     class="h-8 w-8 relative pb-1.5 flex flex-col items-center justify-center bg-slate-100 hover:bg-primary-500 hover:text-white text-black rounded transition-colors"
@@ -203,10 +216,10 @@
                                 :class="{ 'bg-primary-500! text-white': showWatermark }">
                                 <iconify-icon icon="mdi-light:bookmark" class="text-lg inline-block"></iconify-icon>
                             </button>
+                            <Tooltip position="bottom" class="top-full left-1/2 -translate-x-1/2">
+                                <span class="text-xs whitespace-nowrap">Marca d'água</span>
+                            </Tooltip>
                         </div>
-                        <Tooltip position="left">
-                            <span class="text-xs whitespace-nowrap">Marca d'água</span>
-                        </Tooltip>
                     </div>
                 </div>
             </div>
@@ -520,18 +533,17 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="flex justify-end items-center pr-4">
-                            <!-- Finish button -->
-                            <button @click="finishDrawing()"
-                                class="h-10 px-8 pointer-events-auto flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 text-white rounded font-semibold transition-colors cursor-pointer">
-                                <iconify-icon icon="iconoir:check" class="text-2xl inline-block"></iconify-icon>
-                                <span class="ml-3">Finalizar</span>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
+        
+        <!-- Botão Finalizar fixo no canto inferior direito -->
+        <button @click="finishDrawing()"
+            class="fixed bottom-6 right-6 z-50 h-10 px-8 pointer-events-auto flex items-center justify-center bg-emerald-500 hover:bg-emerald-600 text-white rounded font-semibold transition-colors cursor-pointer shadow-lg">
+            <iconify-icon icon="iconoir:check" class="text-2xl inline-block"></iconify-icon>
+            <span class="ml-3">Finalizar</span>
+        </button>
 
         <!-- Modal de Comparação -->
         <Dialog 
@@ -560,7 +572,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed, nextTick, defineAsyncComponent } from 'vue';
-import { Canvas, FabricImage, Rect, PencilBrush, classRegistry, Path, IText, Circle, Triangle, Polyline, Point, util } from 'fabric'
+import { Canvas, FabricImage, Rect, PencilBrush, Path, IText, Circle, Triangle, Polyline, Point, util } from 'fabric'
 
 import { EraserBrush, ClippingGroup } from '@erase2d/fabric';
 
@@ -575,12 +587,8 @@ import Dialog from '@/components/Dialog.vue';
 import Compare from '@/components/Compare.vue';
 import Cropper from '@/components/Cropper.vue';
 
-import Arrow from '@/fabricClasses/Arrow.js';
-
 // import { useRangeInput } from '@/composables/useRangeInput.js';
 // const rangeInput = useRangeInput();
-
-classRegistry.setClass(Arrow);
 
 // Define um nome de componente multi-palavra para atender a regra de lint
 defineOptions({ name: 'ImageAnnotatorApp' });
@@ -652,7 +660,8 @@ const secondClipPath = ref(null);
 const drawingArea = ref(null); // Área de desenho (retângulo transparente)
 const zoomLevel = ref(1);
 const maxZoom = ref(4.5);
-const minZoom = ref(0.5);
+const minZoom = ref(0.3);
+let isSwitchingDisplayMode = false;
 
 const imagesToCompare = ref({
     first: null,
@@ -710,6 +719,7 @@ const isDrawingArrow = ref(false);
 let rect, circle, triangle, line, arrow, origX, origY;
 const fillColor = ref(commonStore.brandColor); // Cor de preenchimento de novos objetos
 const lineStrokeColor = ref(commonStore.brandColor); // Cor da linha para linhas e setas
+const watermarkWidthPercent = 0.2; // Marca d'água ocupa 50% da largura do drawingArea (ajustável)
 
 // 3. CICLO DE VIDA 'onMounted'
 // O código dentro do 'onMounted' só executa *depois* que o componente foi montado na página.
@@ -792,7 +802,8 @@ onUnmounted(() => {
     document.removeEventListener('keyup', handleKeyUp);
 });
 
-watch(displayMode, async (newMode) => {
+watch(displayMode, async (newMode, oldMode) => {
+    if (isRestoring) return;
     switchDisplayMode(newMode);
 });
 
@@ -1070,21 +1081,118 @@ async function applyCroppedImage(croppedImageData) {
     }
 }
 
-async function switchDisplayMode(newMode) {
+async function switchDisplayMode(newMode, options = {}) {
+    const { skipSave = false, force = false } = options;
 
-    const fi = firstImage.value;
-    const si = secondImage.value;
-    if(fi) fi.set('isManuallyMoved', false);
-    if(si) si.set('isManuallyMoved', false);
+    const zoomAtStart = fabricCanvas.getZoom();
+    console.log('🔄 switchDisplayMode:', newMode, '| skipSave:', skipSave, '| zoom at start:', Math.round(zoomAtStart * 100) + '%');
 
-    await adjustCanvasSize();
-    await nextTick();
-    await updateClipPathsSize();
-    await updateImagesPosition();
-    await addDrawingAreaHandlers();
-    await fitToCanvas(false);    
-    if (newMode === 'ttb') {
-        await ensureDrawingAreaVisible();
+    if (!force && isSwitchingDisplayMode) return;
+    if (!force && isRestoring) return;
+
+    isSwitchingDisplayMode = true;
+    try {
+        if (fabricCanvas) {
+            fabricCanvas.discardActiveObject();
+            fabricCanvas.requestRenderAll();
+        }
+
+        if (!isRestoring && displayMode.value !== newMode) {
+            displayMode.value = newMode;
+        }
+
+        const ready = await ensureDisplayModeDependenciesReady();
+        if (!ready) {
+            console.warn('⚠️ Display mode switch skipped: canvas not ready');
+            return;
+        }
+
+        const fi = firstImage.value;
+        const si = secondImage.value;
+        if (fi) fi.set('isManuallyMoved', false);
+        if (si) si.set('isManuallyMoved', false);
+
+        const currentZoomBeforeUpdate = fabricCanvas.getZoom();
+        const currentViewportBeforeUpdate = [...fabricCanvas.viewportTransform];
+
+        await adjustCanvasSize(true);
+        await addDrawingArea();
+        await nextTick();
+        await updateClipPathsSize();
+        await nextTick();
+        await updateImagesPosition();
+        await nextTick();
+        
+        const beforeHandlersAdd = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle').length;
+        console.log('📍 Before addDrawingAreaHandlers:', beforeHandlersAdd, 'handlers');
+        
+        await addDrawingAreaHandlers();
+
+        const afterHandlersAdd = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle').length;
+        console.log('📍 After addDrawingAreaHandlers:', afterHandlersAdd, 'handlers');
+        
+        if (!skipSave) {
+            console.log('📐 Calling fitToCanvas (skipDrawingAreaUpdate=true)');
+            await fitToCanvas(false, true);
+            if (newMode === 'ttb') {
+                await ensureDrawingAreaVisible();
+            }
+        } else {
+            fabricCanvas.setZoom(currentZoomBeforeUpdate);
+            fabricCanvas.viewportTransform = currentViewportBeforeUpdate;
+            fabricCanvas.setViewportTransform(currentViewportBeforeUpdate);
+            zoomLevel.value = currentZoomBeforeUpdate;
+            fabricCanvas.requestRenderAll();
+        }
+        
+        if (!isRestoring && !skipSave) {
+            saveCanvasState();
+        }
+
+        const finalHandlerCount = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle').length;
+        const finalZoom = fabricCanvas.getZoom();
+        console.log('✅ switchDisplayMode END:', finalHandlerCount, 'handlers | zoom:', Math.round(finalZoom * 100) + '% | zoomLevel.value:', Math.round(zoomLevel.value * 100) + '%');
+    } finally {
+        isSwitchingDisplayMode = false;
+    }
+}
+
+async function ensureDisplayModeDependenciesReady(timeout = 1000, interval = 50) {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+        if (
+            fabricCanvas &&
+            firstImage.value &&
+            secondImage.value &&
+            drawingArea.value &&
+            firstClipPath.value &&
+            secondClipPath.value
+        ) {
+            return true;
+        }
+        await new Promise(resolve => setTimeout(resolve, interval));
+    }
+    return false;
+}
+
+async function handleDisplayModeClick(mode) {
+    const currentZoomAtClick = fabricCanvas.getZoom();
+    console.log('🖱️ Click:', mode, '(current:', displayMode.value + ') | zoom before click:', Math.round(currentZoomAtClick * 100) + '% | zoomLevel.value:', Math.round(zoomLevel.value * 100) + '%');
+    
+    if (isRestoring) return;
+
+    if (isSwitchingDisplayMode) {
+        let attempts = 0;
+        while (isSwitchingDisplayMode && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+    }
+    
+    if (displayMode.value === mode) {
+        await switchDisplayMode(mode, { force: true });
+    } else {
+        displayMode.value = mode;
     }
 }
 
@@ -1106,6 +1214,17 @@ function objectScaleChangedInput(event, axis) {
 async function addDrawingArea() {
     if (!firstClipPath.value || !secondClipPath.value) return;
 
+    const handlersBeforeDA = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle');
+    console.log('🏗️ addDrawingArea: handlers before:', handlersBeforeDA.length);
+
+    // SEMPRE remove todos os handlers antes de criar novo drawingArea
+    if (handlersBeforeDA.length > 0) {
+        handlersBeforeDA.forEach(handle => fabricCanvas.remove(handle));
+        fabricCanvas.requestRenderAll();
+        await nextTick();
+    }
+
+    // Remove drawingArea antigo se existir
     const da =  fabricCanvas.getObjects().find(obj => obj.id === 'drawingArea');
     if(da) {
         fabricCanvas.remove(da);
@@ -1228,6 +1347,9 @@ async function addDrawingArea() {
     });
 
     fabricCanvas.requestRenderAll();
+    
+    const handlersAfterDA = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle');
+    console.log('🏗️ addDrawingArea: handlers after:', handlersAfterDA.length);
 }
 
 /**
@@ -1405,18 +1527,39 @@ function saveCanvasState() {
     // Limpa a pilha de refazer (redo stack) sempre que uma nova ação é feita
     redoStack.value = [];
 
+    // Garante que clipPaths têm ID antes de serializar
+    if (firstClipPath.value && !firstClipPath.value.id) {
+        firstClipPath.value.set('id', 'firstClipPath');
+    }
+    if (secondClipPath.value && !secondClipPath.value.id) {
+        secondClipPath.value.set('id', 'secondClipPath');
+    }
+
     // Serializa o canvas para JSON, incluindo propriedades personalizadas
-    const stateObj = fabricCanvas.toObject([
+    const canvasState = fabricCanvas.toObject([
         'id',
+        'class',
         'selectable',
         'evented',
         'absolutePositioned',
         'isManuallyMoved'
     ]);
 
-    const state = JSON.stringify(stateObj);
+    // Remove handlers do estado salvo para evitar duplicação no restore
+    if (canvasState.objects) {
+        const originalCount = canvasState.objects.length;
+        canvasState.objects = canvasState.objects.filter(obj => obj.class !== 'resize-handle');
+        const filteredCount = canvasState.objects.length;
+        const filtered = originalCount - filteredCount;
+        if (filtered > 0) {
+            console.log('💾 saveCanvasState: filtered', filtered, 'handlers from state');
+        }
+    }
 
-    console.log('State', state);
+    const state = JSON.stringify({
+        displayMode: displayMode.value,
+        canvas: canvasState,
+    });
     
 
     // Adiciona o estado à pilha de desfazer
@@ -1463,37 +1606,50 @@ async function redo() {
  * Restaura o canvas a partir de um objeto de estado JSON.
  */
 async function restoreCanvasState(state) {
-    isRestoring = true; // Ativa a flag para não salvar este estado novamente
+    console.log('🔙 UNDO/REDO START');
+    isRestoring = true;
 
+    let restoredDisplayMode = null;
     try {
-        // Limpa a seleção atual antes de restaurar
-        fabricCanvas.discardActiveObject();
+        const parsed = typeof state === 'string' ? JSON.parse(state) : state;
+        const canvasState = parsed?.canvas ?? parsed;
+        restoredDisplayMode = parsed?.displayMode ?? inferDisplayModeFromClipPaths(parsed);
         
-        // Carrega o estado do JSON de forma assíncrona
-        await fabricCanvas.loadFromJSON(state);
+        if (restoredDisplayMode && restoredDisplayMode !== displayMode.value) {
+            displayMode.value = restoredDisplayMode;
+        }
 
-        console.log('Canvas state restored from JSON:', state);
+        const currentZoom = fabricCanvas.getZoom();
+        const currentViewportTransform = [...fabricCanvas.viewportTransform];
         
+        fabricCanvas.discardActiveObject();
+        await fabricCanvas.loadFromJSON(canvasState);
+
+        const handlersAfterLoad = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle');
+        console.log('🔙 After loadFromJSON:', handlersAfterLoad.length, 'handlers');
+
+        fabricCanvas.setZoom(currentZoom);
+        fabricCanvas.viewportTransform = currentViewportTransform;
+        fabricCanvas.setViewportTransform(currentViewportTransform);
+        zoomLevel.value = currentZoom;
         
-        // Aguarda o próximo tick para garantir que tudo foi renderizado
         await nextTick();
         
-        // Reatribui as referências principais buscando pelos IDs
         firstImage.value = fabricCanvas.getObjects().find(o => o.id === 'firstImage');
         secondImage.value = fabricCanvas.getObjects().find(o => o.id === 'secondImage');
         drawingArea.value = fabricCanvas.getObjects().find(o => o.id === 'drawingArea');
         watermark.value = fabricCanvas.getObjects().find(o => o.id === 'watermark');
 
-        console.log('First Image:', firstImage.value);
-        console.log('Second Image:', secondImage.value);
-        console.log('Drawing Area:', drawingArea.value);
-        console.log('Watermark:', watermark.value);
-
-        // Busca os clipPaths
-        firstClipPath.value = fabricCanvas.getObjects().find(o => o.id === 'firstClipPath');
-        secondClipPath.value = fabricCanvas.getObjects().find(o => o.id === 'secondClipPath');
+        firstClipPath.value = firstImage.value?.clipPath || fabricCanvas.getObjects().find(o => o.id === 'firstClipPath');
+        secondClipPath.value = secondImage.value?.clipPath || fabricCanvas.getObjects().find(o => o.id === 'secondClipPath');
         
-        // Reatribui os clipPaths às imagens se necessário
+        if (firstClipPath.value && !firstClipPath.value.id) {
+            firstClipPath.value.set('id', 'firstClipPath');
+        }
+        if (secondClipPath.value && !secondClipPath.value.id) {
+            secondClipPath.value.set('id', 'secondClipPath');
+        }
+        
         if (firstImage.value && firstClipPath.value && !firstImage.value.clipPath) {
             firstImage.value.clipPath = firstClipPath.value;
         }
@@ -1501,29 +1657,64 @@ async function restoreCanvasState(state) {
             secondImage.value.clipPath = secondClipPath.value;
         }
         
-        // Reaplicar estilos aos controles de todos os objetos
         fabricCanvas.getObjects().forEach(obj => {
             if (obj.id !== 'drawingArea' && obj.class !== 'resize-handle' && obj.id !== 'watermark') {
                 applyStyleToControls(obj);
             }
         });
         
-        // Atualiza os valores dos inputs da área de desenho
         if (drawingArea.value) {
             drawingAreaWidth.value = drawingArea.value.width;
             drawingAreaHeight.value = drawingArea.value.height;
         }
         
-        // Força uma nova renderização completa
         fabricCanvas.requestRenderAll();
-        
-        // Aguarda mais um tick antes de reativar os listeners
         await nextTick();
-        
+
     } catch (error) {
-        console.error('Erro ao restaurar estado do canvas:', error);
+        console.error('❌ Erro ao restaurar estado:', error);
     } finally {
-        isRestoring = false; // Desativa a flag
+        isRestoring = false;
+    }
+    
+    await nextTick();
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    const modeToApply = restoredDisplayMode || displayMode.value;
+    console.log('🔙 Calling switchDisplayMode after restore:', modeToApply);
+    
+    if (modeToApply) {
+        await switchDisplayMode(modeToApply, { skipSave: true, force: true });
+    }
+    console.log('🔙 UNDO/REDO END');
+}
+
+function inferDisplayModeFromClipPaths(stateObj) {
+    try {
+        const canvasObj = stateObj?.canvas ?? stateObj;
+        const objects = canvasObj?.objects;
+        if (!Array.isArray(objects)) return null;
+
+        const firstClip = objects.find(o => o.id === 'firstClipPath');
+        const secondClip = objects.find(o => o.id === 'secondClipPath');
+        if (!firstClip || !secondClip) return null;
+
+        // Se os clipPaths dividem altura (mesma width, metade da height), é ttb
+        const sameWidth = Math.abs(firstClip.width - secondClip.width) < 1e-3;
+        const sameHeight = Math.abs(firstClip.height - secondClip.height) < 1e-3;
+        if (!sameWidth && sameHeight) {
+            return 'ltr';
+        }
+        if (sameWidth && !sameHeight) {
+            return 'ttb';
+        }
+        // Heurística adicional: compara top
+        if (Math.abs(firstClip.top - secondClip.top) > Math.abs(firstClip.left - secondClip.left)) {
+            return 'ttb';
+        }
+        return 'ltr';
+    } catch (e) {
+        return null;
     }
 }
 
@@ -1823,6 +2014,15 @@ function removeSelectedObjects() {
 function addDrawingAreaHandlers() {
     if (!drawingArea.value) return;
 
+    const existingHandles = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle');
+    console.log('🔧 addDrawingAreaHandlers: existing handlers:', existingHandles.length);
+    
+    if (existingHandles.length > 0) {
+        console.warn('⚠️ Found', existingHandles.length, 'handlers - removing');
+        existingHandles.forEach(handle => fabricCanvas.remove(handle));
+        fabricCanvas.requestRenderAll();
+    }
+
     const commonProps = {
         hasBorders: false,
         fill: handlersColor,
@@ -1947,10 +2147,6 @@ function addDrawingAreaHandlers() {
         hoverCursor: 'se-resize',
     });
 
-    // remove existing handlers if any
-    const existingHandles = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle');
-    existingHandles.forEach(handle => fabricCanvas.remove(handle));
-
     fabricCanvas.add(leftHandle);
     fabricCanvas.add(rightHandle);
     fabricCanvas.add(topHandle);
@@ -1959,6 +2155,15 @@ function addDrawingAreaHandlers() {
     fabricCanvas.add(topRightHandle);
     fabricCanvas.add(bottomLeftHandle);
     fabricCanvas.add(bottomRightHandle);
+    
+    const totalHandlers = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle').length;
+    console.log('🔧 addDrawingAreaHandlers: created 8, total now:', totalHandlers);
+    
+    if (totalHandlers !== 8) {
+        console.error('❌ WRONG COUNT! Expected 8 but got', totalHandlers);
+        const allHandlers = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle');
+        allHandlers.forEach(h => console.log('  ', h.id));
+    }
 }
 
 /**
@@ -2114,8 +2319,11 @@ async function zoomOut(factor = 1.2) {
 /**
  * Ajusta o zoom para caber todo o conteúdo no canvas com animação suave
  */
-async function fitToCanvas(withTransition = true) {
+async function fitToCanvas(withTransition = true, skipDrawingAreaUpdate = false) {
     if (!firstImage.value || !secondImage.value) return;
+
+    const currentZoomBefore = fabricCanvas.getZoom();
+    console.log('📐 fitToCanvas START | current zoom:', Math.round(currentZoomBefore * 100) + '%', '| skipDrawingAreaUpdate:', skipDrawingAreaUpdate);
 
     const canvasWidth = fabricCanvas.getWidth();
     const canvasHeight = fabricCanvas.getHeight();
@@ -2145,6 +2353,8 @@ async function fitToCanvas(withTransition = true) {
     const currentTransform = [...fabricCanvas.viewportTransform];
     const targetTransform = [1, 0, 0, 1, 0, 0];
 
+    console.log('📐 fitToCanvas: calculated target zoom:', Math.round(targetZoom * 100) + '%');
+
     if(withTransition) {
         // Anima o zoom e o viewport em paralelo
         await Promise.all([
@@ -2154,27 +2364,33 @@ async function fitToCanvas(withTransition = true) {
     } else {
         fabricCanvas.setZoom(targetZoom);
         fabricCanvas.viewportTransform = targetTransform;
+        zoomLevel.value = targetZoom; // Atualiza o valor reativo do zoom
         fabricCanvas.requestRenderAll();
     }
+    
+    const finalZoom = fabricCanvas.getZoom();
+    console.log('📐 fitToCanvas END | zoom now:', Math.round(finalZoom * 100) + '% | zoomLevel.value:', Math.round(zoomLevel.value * 100) + '%');
 
-    // Atualiza a área de desenho após ajustar o zoom
-    addDrawingArea();
+    // Só atualiza a área de desenho se não for chamado de switchDisplayMode
+    if (!skipDrawingAreaUpdate) {
+        console.log('📐 fitToCanvas: calling addDrawingArea (will remove handlers!)');
+        await addDrawingArea();
+        const handlersAfterFit = fabricCanvas.getObjects().filter(o => o.class === 'resize-handle').length;
+        console.log('📐 fitToCanvas END:', handlersAfterFit, 'handlers');
+    }
 }
 
 async function ensureDrawingAreaVisible() {
     if (!drawingArea.value) return;
 
-    // Aguarda o próximo tick para garantir que todas as renderizações pendentes foram concluídas
     await nextTick();
 
     const canvasWidth = fabricCanvas.getWidth();
     const canvasHeight = fabricCanvas.getHeight();
-    const margin = 120; // 40px de margem
+    const margin = 120;
 
-    // Pega os limites da área de desenho
     const daBounds = drawingArea.value.getBoundingRect();
 
-    // Calcula o zoom necessário para que a área de desenho caiba na tela
     const requiredZoomX = (canvasWidth - margin) / daBounds.width;
     const requiredZoomY = (canvasHeight - margin) / daBounds.height;
     const requiredZoomFactor = Math.min(requiredZoomX, requiredZoomY);
@@ -2189,10 +2405,14 @@ async function ensureDrawingAreaVisible() {
 
     // Aplica o zoom se necessário
     if (targetZoom !== currentZoom) {
+        console.log('📏 ensureDrawingAreaVisible: adjusting zoom from', Math.round(currentZoom * 100) + '% to', Math.round(targetZoom * 100) + '%');
         const centerPoint = drawingArea.value.getCenterPoint();
         fabricCanvas.zoomToPoint(centerPoint, targetZoom);
         zoomLevel.value = targetZoom;
         fabricCanvas.requestRenderAll();
+        console.log('📏 ensureDrawingAreaVisible END | zoomLevel.value:', Math.round(zoomLevel.value * 100) + '%');
+    } else {
+        console.log('📏 ensureDrawingAreaVisible: no zoom adjustment needed');
     }
 }
 
@@ -2323,9 +2543,6 @@ async function setHoverState(target) {
             fabricCanvas.add(clone);
             fabricCanvas.bringObjectToFront(clone);
 
-            console.log('hover added', clone.id);
-            
-
             fabricCanvas.requestRenderAll();
         }
     }
@@ -2348,6 +2565,56 @@ function clearAllHoverStates() {
         }
     });
     fabricCanvas.requestRenderAll();
+}
+
+/**
+ * Cria um Path de seta com coordenadas absolutas, deixando ponta na posição final.
+ */
+function createArrowShape(x1, y1, x2, y2, strokeWidth, strokeColor, baseOptions = {}) {
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const headLength = Math.max(12, strokeWidth * 3);
+    const headWidth = headLength * 0.6;
+
+    const tip = { x: x2, y: y2 };
+    const baseX = x2 - headLength * Math.cos(angle);
+    const baseY = y2 - headLength * Math.sin(angle);
+
+    const left = {
+        x: baseX + headWidth * Math.sin(angle),
+        y: baseY - headWidth * Math.cos(angle),
+    };
+    const right = {
+        x: baseX - headWidth * Math.sin(angle),
+        y: baseY + headWidth * Math.cos(angle),
+    };
+
+    const minX = Math.min(x1, tip.x, left.x, right.x);
+    const minY = Math.min(y1, tip.y, left.y, right.y);
+
+    const path = [
+        ['M', x1 - minX, y1 - minY],
+        ['L', tip.x - minX, tip.y - minY],
+        ['M', tip.x - minX, tip.y - minY],
+        ['L', left.x - minX, left.y - minY],
+        ['M', tip.x - minX, tip.y - minY],
+        ['L', right.x - minX, right.y - minY],
+    ];
+
+    return new Path(path, {
+        ...baseOptions,
+        left: minX,
+        top: minY,
+        fill: null,
+        stroke: strokeColor,
+        strokeWidth,
+        originX: 'left',
+        originY: 'top',
+        strokeLineCap: 'round',
+        strokeLineJoin: 'round',
+        perPixelTargetFind: true,
+        strokeUniform: true,
+        pathOffset: { x: 0, y: 0 },
+    });
 }
 
 function setupFabricEvents() {
@@ -2464,13 +2731,13 @@ function setupFabricEvents() {
             circle = new Circle({
                 left: origX,
                 top: origY,
-                originX: 'left',
-                originY: 'top',
+                originX: 'center',
+                originY: 'center',
                 opacity: objectOpacity.value,
                 strokeWidth: baseStrokeWidth.value * objectStrokeWidthMultiplier.value,
                 fill: 'transparent',
                 stroke: lineStrokeColor.value,
-                radius: Math.abs(pointer.x - origX) / 2,
+                radius: 0,
                 transparentCorners: false
             });
             fabricCanvas.add(circle);
@@ -2519,6 +2786,33 @@ function setupFabricEvents() {
             });
 
             fabricCanvas.add(line);
+            return;
+        }
+
+        if (activeTool.value === 'arrow') {
+            isDrawingArrow.value = true;
+            const pointer = fabricCanvas.getPointer(evt);
+            const strokeWidth = baseStrokeWidth.value * objectStrokeWidthMultiplier.value;
+
+            origX = pointer.x;
+            origY = pointer.y;
+
+            arrow = createArrowShape(
+                origX,
+                origY,
+                origX,
+                origY,
+                strokeWidth,
+                lineStrokeColor.value,
+                {
+                    opacity: objectOpacity.value,
+                    selectable: false,
+                    evented: false,
+                    id: `arrow-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+                },
+            );
+
+            fabricCanvas.add(arrow);
             return;
         }
 
@@ -2601,10 +2895,22 @@ function setupFabricEvents() {
 
         if (isDrawingCircle.value) {
             const pointer = fabricCanvas.getPointer(opt.e);
-            const radius = Math.abs(pointer.x - origX) / 2;
+            
+            // Calcula a distância entre o ponto inicial e o cursor (diâmetro)
+            const dx = pointer.x - origX;
+            const dy = pointer.y - origY;
+            const diameter = Math.sqrt(dx * dx + dy * dy);
+            const radius = diameter / 2;
+            
+            // Centro do círculo (ponto médio entre início e cursor)
+            const centerX = origX + dx / 2;
+            const centerY = origY + dy / 2;
+            
             circle.set({
-                left: origX + radius,
-                top: origY + radius,
+                left: centerX,
+                top: centerY,
+                originX: 'center',
+                originY: 'center',
                 radius: radius
             });
         }
@@ -2657,6 +2963,29 @@ function setupFabricEvents() {
             line.setCoords();
         }
 
+        if (isDrawingArrow.value && arrow) {
+            const pointer = fabricCanvas.getPointer(opt.e);
+            const newArrow = createArrowShape(
+                origX,
+                origY,
+                pointer.x,
+                pointer.y,
+                arrow.strokeWidth,
+                arrow.stroke,
+                {
+                    opacity: arrow.opacity,
+                    selectable: false,
+                    evented: false,
+                    id: arrow.id,
+                },
+            );
+
+            fabricCanvas.remove(arrow);
+            arrow = newArrow;
+            fabricCanvas.add(arrow);
+            arrow.setCoords();
+        }
+
         fabricCanvas.renderAll();
     });
 
@@ -2682,7 +3011,8 @@ function setupFabricEvents() {
             applyStyleToControls(rect);
             fabricCanvas.setActiveObject(rect);
             saveCanvasState();
-            activateSelectionMode();
+            // Mantém a ferramenta ativa ao invés de voltar para seleção
+            setActiveTool('rectangle');
             return;
         }
 
@@ -2692,7 +3022,8 @@ function setupFabricEvents() {
             applyStyleToControls(circle);
             fabricCanvas.setActiveObject(circle);
             saveCanvasState();
-            activateSelectionMode();
+            // Mantém a ferramenta ativa ao invés de voltar para seleção
+            setActiveTool('circle');
             return;
         }
 
@@ -2702,7 +3033,8 @@ function setupFabricEvents() {
             applyStyleToControls(triangle);
             fabricCanvas.setActiveObject(triangle);
             saveCanvasState();
-            activateSelectionMode();
+            // Mantém a ferramenta ativa ao invés de voltar para seleção
+            setActiveTool('triangle');
             return;
         }
 
@@ -2716,7 +3048,23 @@ function setupFabricEvents() {
             applyStyleToControls(line);
             fabricCanvas.setActiveObject(line);
             saveCanvasState();
-            activateSelectionMode();
+            // Mantém a ferramenta ativa ao invés de voltar para seleção
+            setActiveTool('line');
+            return;
+        }
+
+        if (isDrawingArrow.value) {
+            isDrawingArrow.value = false;
+            arrow.set({
+                selectable: true,
+                evented: true,
+            });
+            arrow.setCoords();
+            applyStyleToControls(arrow);
+            fabricCanvas.setActiveObject(arrow);
+            saveCanvasState();
+            // Mantém a ferramenta ativa ao invés de voltar para seleção
+            setActiveTool('arrow');
             return;
         }
     });
@@ -3261,7 +3609,7 @@ async function loadImages() {
     });
 }
 
-async function adjustCanvasSize() {
+async function adjustCanvasSize(skipDrawingArea = false) {
     if (fabricCanvas) {
         const container = canvasWrapper.value;
 
@@ -3277,8 +3625,10 @@ async function adjustCanvasSize() {
 
             fabricCanvas.renderAll();
 
-            // Atualiza a área de desenho após redimensionar
-            await addDrawingArea();
+            // Atualiza a área de desenho após redimensionar (a menos que seja pulado)
+            if (!skipDrawingArea) {
+                await addDrawingArea();
+            }
         }
     }
 }
@@ -3412,6 +3762,18 @@ async function addWatermark() {
     await Promise.all([
         FabricImage.fromURL(logoSettings.value.url, { crossOrigin: 'anonymous' })
     ]).then(([watermarkObj]) => {
+        console.log('💧 Watermark image loaded - original dimensions:', watermarkObj.width, 'x', watermarkObj.height);
+        
+        // Calcula escala baseada no drawingArea
+        let calculatedScale = 0.2; // fallback
+        if (drawingArea.value) {
+            const targetWidth = drawingArea.value.width * watermarkWidthPercent;
+            calculatedScale = targetWidth / watermarkObj.width;
+            console.log('💧 addWatermark: drawingArea width:', drawingArea.value.width.toFixed(1),
+                        '| target watermark width (20%):', targetWidth.toFixed(1),
+                        '| calculated scale:', calculatedScale.toFixed(3));
+        }
+
         watermarkObj.set({
             includeDefaultValues: true,
             opacity: logoSettings.value.opacity ? parseFloat(logoSettings.value.opacity) : 1,
@@ -3420,21 +3782,17 @@ async function addWatermark() {
             excludeFromExport: !showWatermark.value,
             hoverCursor: 'default',
             id: 'watermark',
-            scaleX: logoSettings.value.scale ? parseFloat(logoSettings.value.scale) : 0.2,
-            scaleY: logoSettings.value.scale ? parseFloat(logoSettings.value.scale) : 0.2,
+            scaleX: calculatedScale,
+            scaleY: calculatedScale,
+            objectFit: 'fill', // Estica a imagem para preencher o espaço
         });
-
-        console.log('Watermark added:', watermarkObj);
         
-
-        // Armazena a referência da marca d'água
+        console.log('💧 Watermark after set - scaleX:', watermarkObj.scaleX, 'scaleY:', watermarkObj.scaleY,
+                    '| scaled width:', watermarkObj.getScaledWidth().toFixed(1));
+        
         watermark.value = watermarkObj;
-
         fabricCanvas.add(watermarkObj);
-        
-        // Posiciona usando a função de viewport
         updateWatermarkPosition();
-
         fabricCanvas.bringObjectToFront(watermarkObj);
         fabricCanvas.requestRenderAll();
     });
@@ -3459,13 +3817,13 @@ async function toggleWatermark() {
 }
 
 /**
- * Atualiza a posição da marca d'água para sempre ficar no canto inferior direito do drawingArea
+ * Atualiza a posição e escala da marca d'água (proporcional à largura do drawingArea)
  */
 function updateWatermarkPosition() {
     
     if (!fabricCanvas || !watermark.value || !drawingArea.value) return;
 
-    const margin = 20; // Margem reduzida para ficar dentro do drawingArea
+    const margin = 20;
 
     // Calcula as coordenadas do drawingArea (considerando que tem originX/Y: center)
     const drawingAreaWidth = drawingArea.value.width;
@@ -3475,8 +3833,25 @@ function updateWatermarkPosition() {
     const drawingAreaRight = drawingAreaLeft + drawingAreaWidth;
     const drawingAreaBottom = drawingAreaTop + drawingAreaHeight;
 
+    // Calcula escala para que a marca d'água ocupe a porcentagem definida da largura do drawingArea
+    const targetWidth = drawingAreaWidth * watermarkWidthPercent;
+    const newScale = targetWidth / watermark.value.width;
+    
+    console.log('💧 updateWatermarkPosition: drawingArea width:', drawingAreaWidth.toFixed(1), 
+                '| target watermark width:', targetWidth.toFixed(1), 
+                '| calculated scale:', newScale.toFixed(3));
+    
+    // Atualiza a escala da marca d'água
+    watermark.value.set({
+        scaleX: newScale,
+        scaleY: newScale,
+        objectFit: 'fill', // Estica a imagem para preencher o espaço
+    });
+
     const watermarkWidth = watermark.value.getScaledWidth();
     const watermarkHeight = watermark.value.getScaledHeight();
+    
+    console.log('💧 Watermark scaled width:', watermarkWidth.toFixed(1), 'height:', watermarkHeight.toFixed(1));
 
     let left = 0;
     let top = 0;
@@ -3514,13 +3889,12 @@ function updateWatermarkPosition() {
             break;
     }
 
-    // Atualiza posição e escala da marca d'água
+    // Atualiza posição da marca d'água (escala já foi atualizada acima)
     watermark.value.set({
         left: left,
         top: top,
         visible: showWatermark.value,
         excludeFromExport: !showWatermark.value,
-        // opacity: logoSettings.value.opacity ? parseFloat(logoSettings.value.opacity) : 1,
     });
     watermark.value.setCoords();
 
@@ -3630,9 +4004,23 @@ async function toggleCropper() {
 async function finishDrawing() {
     finishing.value = true;
     if (fabricCanvas && drawingArea) {
+        // Desabilita seleção e interação após finalizar
+        fabricCanvas.selection = false;
+        fabricCanvas.defaultCursor = 'default';
+        fabricCanvas.hoverCursor = 'default';
+        
+        // Desabilita eventos de interação em todos os objetos
+        const allObjects = fabricCanvas.getObjects();
+        allObjects.forEach(obj => {
+            obj.set({
+                selectable: false,
+                evented: false,
+                hoverCursor: 'default',
+            });
+        });
+        
         if (fabricCanvas.isDrawingMode) {
             fabricCanvas.isDrawingMode = false;
-            fabricCanvas.selection = true; // Habilita seleção quando termina o desenho
             fabricCanvas.requestRenderAll();
             saveCanvasState();
         }

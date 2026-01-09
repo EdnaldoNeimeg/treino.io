@@ -19,6 +19,7 @@ class Arrow extends FabricObject {
     this.arrowheadLength = options.arrowheadLength || 20;
     this.arrowheadWidth = options.arrowheadWidth || 20;
 
+    this._updateBoundingBox();
   }
 
   _updateBoundingBox() {
@@ -69,11 +70,21 @@ class Arrow extends FabricObject {
   }
 
   toObject(propertiesToInclude) {
-    return super.toObject();
+    return {
+      ...super.toObject(propertiesToInclude),
+      x1: this.x1,
+      y1: this.y1,
+      x2: this.x2,
+      y2: this.y2,
+      arrowheadLength: this.arrowheadLength,
+      arrowheadWidth: this.arrowheadWidth,
+    };
   }
 
   static fromObject(object) {
-    return Promise.resolve(new Arrow(object));
+    const arrow = new Arrow(object);
+    arrow._updateBoundingBox();
+    return Promise.resolve(arrow);
   }
 }
 
